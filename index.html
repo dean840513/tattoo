@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TATTOO NFT Marketplace</title>
+  <script src="ethers.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+  <header>
+    <h1>TATTOO NFT</h1>
+    <div class="wallet-info">
+      <div class="wallet-row">
+        <button id="connectBtn">🔗 连接钱包</button>
+        <span id="walletAddress" style="display:none;"></span>
+      </div>
+      <div class="wallet-row">
+        <span id="authChecking" style="display:none;">
+          <span class="loader"></span> 正在检查 TATTOO 授权...
+        </span>
+        <button id="approveBtn" style="display:none;">授权 TATTOO Token</button>
+        <span id="tatBalance" style="display:none;"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h2>欢迎来到 TATTOO NFT 市场</h2>
+    <p>探索、购买并收藏独特的酒类 NFT</p>
+  </div>
+
+  <div class="grid" id="nftGrid"></div>
+
+	<!-- 📱 手机端提示弹窗 -->
+	<div id="mobileAlert" style="display:none; position:fixed; top:30%; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ccc; border-radius:8px; padding:1.2rem; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:9999; width:90%; max-width:360px;">
+
+	  <!-- ✖️ 关闭按钮 -->
+	  <div style="text-align:right; margin:-0.8rem -0.8rem 0.5rem 0;">
+		<button onclick="closeMobileAlert()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">✖</button>
+	  </div>
+
+	  <p style="margin:0 0 1rem;">📱 请在 MetaMask App 中点击浏览器图标，并访问本站：</p>
+	  <input id="siteLink" value="" readonly style="width:100%; font-size:0.9rem; padding:0.4rem; border:1px solid #ccc; border-radius:4px; margin-bottom:1rem;" />
+	  <button onclick="copyLink()" style="background:#000; color:#fff; padding:0.5rem 1rem; border:none; border-radius:4px; cursor:pointer;">📋 复制链接</button>
+	</div>
+
+	<!-- ⏳ 钱包交互弹窗 -->
+	<div id="walletOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+	  background:rgba(0,0,0,0.4); z-index:10000; align-items:center; justify-content:center;">
+	  <div style="display:flex; flex-direction:column; background:#fff; padding:1.2rem 2rem; border-radius:8px;
+		box-shadow:0 4px 12px rgba(0,0,0,0.2); font-size:1rem; text-align:center;">
+		<div class="loader" style="margin-bottom:1rem;"></div>
+		正在与钱包交互，请稍候...
+	  </div>
+	</div>
+
+  <script src="script.js"></script>
+
+
+</body>
+</html>

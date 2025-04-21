@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Future Wine #1",
+    "image": "1.jpg",
+    "price": "1"
+  },
+  {
+    "id": 2,
+    "name": "Future Wine #2",
+    "image": "2.jpg",
+    "price": "1.5"
+  },
+  {
+    "id": 3,
+    "name": "Future Wine #2",
+    "image": "2.jpg",
+    "price": "2"
+  },
+  {
+    "id": 4,
+    "name": "Future Wine #2",
+    "image": "2.jpg",
+    "price": 2.5
+  }
+]
