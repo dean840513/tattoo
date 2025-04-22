@@ -41,8 +41,9 @@ let provider, signer, userAddress;
 
 function connectWallet() {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isMetaMaskApp = /MetaMask/i.test(navigator.userAgent);
 
-  if (isMobile) {
+  if (isMobile && !isMetaMaskApp) {
 	document.getElementById("mobileAlert").style.display = "block";
 	document.getElementById("siteLink").value = window.location.href;
 	return;
