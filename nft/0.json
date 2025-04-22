@@ -1,7 +1,7 @@
 {
   "name": "TAT Red Wine NFT #0",
   "description": "A fine bottle of vintage red wine, year 2020.",
-  "image": "https://yourdomain.github.io/nft-assets/images/wine-0.jpg",
+  "image": "https://dean840513.github.io/tattoo/nft/wine-0.jpg",
   "attributes": [
     { "trait_type": "Vintage", "value": "2020" },
     { "trait_type": "Region", "value": "Shandong, China" },
