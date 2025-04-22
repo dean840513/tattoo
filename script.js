@@ -20,6 +20,7 @@ function copyLink() {
   input.setSelectionRange(0, 99999);
   document.execCommand("copy");
   alert("✅ 链接已复制，请前往 MetaMask App 打开浏览器粘贴访问！");
+  window.location.href = "https://metamask.app.link/";
 }
 
 const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
@@ -40,18 +41,23 @@ const MARKETPLACE_ABI = [
 let provider, signer, userAddress;
 
 function connectWallet() {
+  // const isMetaMaskApp = /MetaMask/i.test(navigator.userAgent);
+
+  // if (isMobile && !isMetaMaskApp) {
+	// document.getElementById("mobileAlert").style.display = "block";
+	// document.getElementById("siteLink").value = window.location.href;
+	// return;
+  // }
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const isMetaMaskApp = /MetaMask/i.test(navigator.userAgent);
-
-  if (isMobile && !isMetaMaskApp) {
-	document.getElementById("mobileAlert").style.display = "block";
-	document.getElementById("siteLink").value = window.location.href;
-	return;
-  }
-
   if (!window.ethereum || !window.ethereum.isMetaMask) {
-	alert("请先安装 MetaMask 插件！");
-	return;
+	if (isMobile) {
+		document.getElementById("mobileAlert").style.display = "block";
+		document.getElementById("siteLink").value = window.location.href;
+		return;	}
+	else
+		alert("请先安装 MetaMask 插件！");
+	window.location.href = "https://metamask.app.link/";
+	return;	  
   }
 
   showWalletOverlay();
