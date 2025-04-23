@@ -49,8 +49,13 @@ async function renderNFTs() {
           <h3>${metadata.name}</h3>
           <p>${metadata.description}</p>
           <p>${item.price} TATTOO</p>
-          <button onclick="buy(${item.tokenId}, '${item.price}')">立即购买</button>
+          <button class="buy-btn">立即购买</button>
         `;
+
+        // ✅ 点击整卡片或按钮都跳转详情页
+        card.onclick = function () {
+          onNFTClick(item.tokenId);
+        };
         container.appendChild(card);
       } catch (err) {
         console.warn("部分商品加载失败:", err);
@@ -63,4 +68,3 @@ async function renderNFTs() {
     loading.style.display = "none";
   }
 }
-
