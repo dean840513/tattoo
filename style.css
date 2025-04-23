@@ -91,7 +91,7 @@ header h1 {
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 0.8rem;
-  max-width: 500px;
+  max-width: 300px;
 }
 
 .card h3 {
@@ -112,7 +112,7 @@ header h1 {
   border-radius: 6px;
   cursor: pointer;
   width: 100%;
-  max-width: 500px;
+  max-width: 300px;
 }
 
 .loader {
