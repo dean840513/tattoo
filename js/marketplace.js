@@ -45,8 +45,8 @@ async function renderNFTs() {
           <img src="${metadata.image}" alt="${metadata.name}" />
           <h3>${metadata.name}</h3>
           <p>${metadata.description}</p>
-          <p>${metadata.price} TATTOO</p>
-          <button onclick="buy(${item.tokenId}, '${metadata.price}')">立即购买</button>
+          <p>${item.price} TATTOO</p>
+          <button onclick="buy(${item.tokenId}, '${item.price}')">立即购买</button>
         `;
         container.appendChild(card);
       } catch (err) {
