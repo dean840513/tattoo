@@ -1,12 +1,14 @@
 [
   {
     "tokenId": 0,
-    "metadata_url": "json/0.json",
-    "listed": true
+    "metadata_url": "https://dean840513.github.io/tattoo/json/0.json",
+    "listed": true,
+    "price": "50"
   },
   {
     "tokenId": 1,
-    "metadata_url": "json/1.json",
-    "listed": true
+    "metadata_url": "https://dean840513.github.io/tattoo/json/1.json",
+    "listed": true,
+    "price": "58"
   }
 ]
