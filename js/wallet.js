@@ -1,14 +1,17 @@
 const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
 const tatTokenAddress = "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce";
+
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)",
   "function allowance(address owner, address spender) public view returns (uint256)",
   "function balanceOf(address owner) public view returns (uint256)",
   "function decimals() public view returns (uint8)"
 ];
+
 const MARKETPLACE_ABI = [
   "function buyFromListing(uint256, address, uint256, address, uint256)"
 ];
+
 let provider, signer, userAddress;
 
 async function connectWallet() {
@@ -32,7 +35,7 @@ async function connectWallet() {
     await window.ethereum.request({ method: "eth_requestAccounts" });
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
-    
+
     document.getElementById("connectBtn").style.display = "none";
     document.getElementById("walletAddress").style.display = "inline";
     document.getElementById("walletAddress").innerText =
@@ -41,6 +44,82 @@ async function connectWallet() {
     await checkApproval();
   } catch (err) {
     alert("连接失败：" + err.message);
+  } finally {
+    hideWalletOverlay();
+  }
+}
+
+async function showTatBalance() {
+  try {
+    const tat = new ethers.Contract(tatTokenAddress, ERC20_ABI, provider);
+    const rawBalance = await tat.balanceOf(userAddress);
+    const decimals = await tat.decimals();
+    const balance = ethers.utils.formatUnits(rawBalance, decimals);
+    document.getElementById("tatBalance").innerText = `余额：${parseFloat(balance).toFixed(4)} TATTOO`;
+    document.getElementById("tatBalance").style.display = "inline";
+  } catch (err) {
+    console.error("查询余额失败:", err);
+    alert("⚠️ 获取余额失败，请稍后重试");
+  }
+}
+
+async function checkApproval() {
+  const tat = new ethers.Contract(tatTokenAddress, ERC20_ABI, provider);
+  const authChecking = document.getElementById("authChecking");
+  const approveBtn = document.getElementById("approveBtn");
+  const tatBalance = document.getElementById("tatBalance");
+
+  authChecking.style.display = "inline";
+  approveBtn.style.display = "none";
+  tatBalance.style.display = "none";
+
+  try {
+    const allowance = await tat.allowance(userAddress, marketplaceAddress);
+    const required = ethers.utils.parseUnits("1", 18);
+
+    if (allowance.gte(required)) {
+      approveBtn.style.display = "none";
+      await showTatBalance();
+    } else {
+      approveBtn.style.display = "inline-block";
+      tatBalance.style.display = "none";
+    }
+  } catch (err) {
+    console.error("授权检查失败:", err);
+    alert("⚠️ 无法获取授权状态，请刷新页面重试");
+  } finally {
+    authChecking.style.display = "none";
+  }
+}
+
+async function approveTat() {
+  const tat = new ethers.Contract(tatTokenAddress, ERC20_ABI, signer);
+  const max = ethers.constants.MaxUint256;
+
+  showWalletOverlay();
+
+  const overlayBox = document.querySelector("#walletOverlay > div");
+  if (overlayBox && !document.getElementById("walletWarning")) {
+    const warning = document.createElement("p");
+    warning.id = "walletWarning";
+    warning.innerHTML = `
+      ⚠️ MetaMask 可能会弹出风险提示，这是常规的代币授权操作。<br>
+      本平台不会主动扣除你的任何资产，所有交易均需你手动确认。
+    `;
+    warning.style.marginTop = "0.8rem";
+    warning.style.color = "#888";
+    warning.style.fontSize = "0.9rem";
+    warning.style.textAlign = "left";
+    overlayBox.appendChild(warning);
+  }
+
+  try {
+    const tx = await tat.approve(marketplaceAddress, max);
+    await tx.wait();
+    alert("✅ 授权成功！");
+    await checkApproval();
+  } catch (err) {
+    alert("❌ 授权失败：" + err.message);
   } finally {
     hideWalletOverlay();
   }

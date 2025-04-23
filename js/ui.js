@@ -20,4 +20,8 @@ function showWalletOverlay() {
       document.execCommand("copy");
       alert("✅ 链接已复制，请前往 MetaMask App 打开浏览器粘贴访问！");
       window.location.href = "https://metamask.app.link/";
+    } catch (err) {
+      console.error("复制链接失败:", err);
+      alert("❌ 复制失败，请手动复制链接");
     }
+  }  
