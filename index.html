@@ -12,14 +12,14 @@
     <h1>TATTOO NFT</h1>
     <div class="wallet-info">
       <div class="wallet-row">
-        <button id="connectBtn">🔗 连接钱包</button>
+        <button id="connectBtn" class="primary-button">🔗 连接钱包</button>
         <span id="walletAddress" style="display:none;"></span>
       </div>
       <div class="wallet-row">
         <span id="authChecking" style="display:none;">
           <span class="loader"></span> 正在检查 TATTOO 授权...
         </span>
-        <button id="approveBtn" style="display:none;">授权 TATTOO Token</button>
+        <button id="approveBtn" style="display:none;">✅ 授权 TATTOO Token</button>
         <span id="tatBalance" style="display:none;"></span>
       </div>
     </div>
@@ -39,16 +39,18 @@
     <div class="grid" id="nftGrid"></div>
   </div>
 
-  <div id="nftDetailView" style="display: none;">
-    <div class="card">
-      <button onclick="backToList()">← 返回列表</button>
+  <div id="nftOverlay" style="display: none;">
+    <div id="nftDetailView"  class="modal">
+      <button class="close-btn" onclick="backToList()">✖</button>
       <h2 id="nftName"></h2>
+      <p id="nftDescription" style="color: #666; margin-bottom: 1rem;"></p>
       <img id="nftImage" style="max-width: 300px;" />
-      <div id="nftAttributes"></div>
-      <p id="nftPrice"></p>
-      <button id="buyButton" onclick="buyNFT()">购买 NFT</button>
+      <div id="nftAttributes" style="color: #666; font-size: 0.9rem; margin: 0.3rem 0;"></div>
+      <p id="nftPrice" style="font-weight: bold;"></p>
+      <button id="buyButton" class="primary-button" onclick="buyNFT()">🛒 立即购买</button>
     </div>
   </div>
+  
   
 
 	<!-- 📱 手机端提示弹窗 -->
