@@ -8,7 +8,7 @@
   {
     "tokenId": 1,
     "metadata_url": "https://dean840513.github.io/tattoo/json/1.json",
-    "listed": false,
+    "listed": true,
     "price": "58"
   }
 ]
