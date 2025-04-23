@@ -1,15 +1,24 @@
 async function buy(listingId, price) {
-  const marketplace = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
+  const marketplace = new ethers.Contract(window.marketplaceAddress, window.MARKETPLACE_ABI, signer);
   const totalPrice = ethers.utils.parseUnits(price, 18);
 
   showWalletOverlay();
 
   try {
+
+    console.log("📦 调用参数：", {
+      listingId,
+      userAddress,
+      quantity: 1,
+      currency: window.tatTokenAddress,
+      price: totalPrice.toString()
+    });
+
     const tx = await marketplace.buyFromListing(
       listingId,
       userAddress,
       1,
-      tatTokenAddress,
+      window.tatTokenAddress,
       totalPrice
     );
     await tx.wait();
@@ -49,7 +58,7 @@ async function renderNFTs() {
           <h3>${metadata.name}</h3>
           <p>${metadata.description}</p>
           <p>${item.price} TATTOO</p>
-          <button class="buy-btn">立即购买</button>
+          <button class="primary-button">🛒 购买</button>
         `;
 
         // ✅ 点击整卡片或按钮都跳转详情页

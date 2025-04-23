@@ -1,5 +1,7 @@
 const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d";
 const tatTokenAddress = "0xE41c36a93D60cD01CE8D17EB93CD4579ac6288D0";
+window.marketplaceAddress = marketplaceAddress;
+window.tatTokenAddress = tatTokenAddress;
 
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)",
@@ -11,6 +13,8 @@ const ERC20_ABI = [
 const MARKETPLACE_ABI = [
   "function buyFromListing(uint256, address, uint256, address, uint256)"
 ];
+
+window.MARKETPLACE_ABI = MARKETPLACE_ABI;
 
 let provider, signer, userAddress;
 
