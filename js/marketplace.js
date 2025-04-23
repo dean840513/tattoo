@@ -23,13 +23,16 @@ async function buy(listingId, price) {
 }
 
 async function renderNFTs() {
+  const loading = document.getElementById("nftLoading");
+  const container = document.getElementById("nftGrid");
+
+  loading.style.display = "block";
+  container.innerHTML = "";
+
   try {
     const response = await fetch("json/listings.json");
     if (!response.ok) throw new Error("无法加载主商品列表");
     const listings = await response.json();
-
-    const container = document.getElementById("nftGrid");
-    container.innerHTML = "";
 
     for (const item of listings) {
       if (!item.listed) continue;
@@ -56,5 +59,8 @@ async function renderNFTs() {
   } catch (err) {
     console.error("❌ 加载 listings.json 失败:", err);
     alert("⚠️ 商品列表加载失败，请稍后再试");
+  } finally {
+    loading.style.display = "none";
   }
 }
+
