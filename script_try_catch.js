@@ -83,48 +83,28 @@ async function connectWallet() {
 document.getElementById("connectBtn").onclick = connectWallet;
 document.getElementById("approveBtn").onclick = approveTat;
 renderNFTs();
-function renderNFTs() {
-  fetch('listings.json')
-    .then(function (response) {
-      if (!response.ok) throw new Error("Network response was not ok");
-      return response.json();
-    })
-    .then(function (listings) {
-      const container = document.getElementById("nftGrid");
-      container.innerHTML = "";
-      listings.forEach(function (nft) {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <img src="${nft.image}" alt="${nft.name}" />
-          <h3>${nft.name}</h3>
-          <p>${nft.price} TATTOO</p>
-          <button onclick="buy(${nft.id}, '${nft.price}')">立即购买</button>
-        `;
-        container.appendChild(card);
-      });
-    })
-    .catch(function (err) {
-      console.error("读取 listings.json 失败：", err);
-      alert("⚠️ 加载商品列表失败，请稍后再试");
+async function renderNFTs() {
+  try {
+    const response = await fetch('listings.json');
+    if (!response.ok) throw new Error("Network response was not ok");
+    const listings = await response.json();
+
+    const container = document.getElementById("nftGrid");
+    container.innerHTML = "";
+    listings.forEach(function (nft) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="${nft.image}" alt="${nft.name}" />
+        <h3>${nft.name}</h3>
+        <p>${nft.price} TATTOO</p>
+        <button onclick="buy(${nft.id}, '${nft.price}')">立即购买</button>
+      `;
+      container.appendChild(card);
     });
-})
-.then(function (listings) {
-  const container = document.getElementById("nftGrid");
-  container.innerHTML = "";
-  listings.forEach(function (nft) {
-	const card = document.createElement("div");
-	card.className = "card";
-	card.innerHTML = `
-	  <img src="${nft.image}" alt="${nft.name}" />
-	  <h3>${nft.name}</h3>
-	  <p>${nft.price} TATTOO</p>
-	  <button onclick="buy(${nft.id}, '${nft.price}')">立即购买</button>
-	`;
-	container.appendChild(card);
-  });
-})
-.catch(function (err) {
-  console.error("读取 listings.json 失败：", err);
-});
+  } catch (err) {
+    console.error("读取 listings.json 失败：", err);
+    alert("⚠️ 加载商品列表失败，请稍后再试");
+  }
 }
+
