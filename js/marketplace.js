@@ -31,6 +31,14 @@ async function buy(listingId, price) {
   }
 }
 
+function resolveIPFS(uri) {
+  if (!uri) return "";
+  if (uri.startsWith("ipfs://")) {
+    return uri.replace("ipfs://", "https://ipfs.io/ipfs/"); // 公共IPFS网关
+  }
+  return uri; // 如果不是ipfs协议，直接返回
+}
+
 async function renderNFTs() {
   const loading = document.getElementById("nftLoading");
   const container = document.getElementById("nftGrid");
@@ -59,7 +67,7 @@ async function renderNFTs() {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-          <img src="${metadata.image}" alt="${metadata.name}" />
+          <img src="${resolveIPFS(metadata.image)}" alt="${metadata.name}" />
           <h3>${metadata.name}</h3>
           <p>${metadata.description}</p>
           <p>${ethers.utils.formatUnits(item.pricePerToken, 18)} TATTOO</p>
