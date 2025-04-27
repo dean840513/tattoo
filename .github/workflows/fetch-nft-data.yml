@@ -1,8 +1,8 @@
 name: Fetch NFT Data
 
 on:
-  schedule:
-    - cron: '0 * * * *'   # 每小时跑一次
+#  schedule:
+#    - cron: '0 * * * *'   # 每小时跑一次
   workflow_dispatch:       # 允许手动点按钮运行
 
 jobs:
