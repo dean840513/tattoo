@@ -3,6 +3,9 @@ document.getElementById("approveBtn").onclick = approveTat;
 
 async function initializeApp() {
   try {
+    const loading = document.getElementById("nftLoading");
+    loading.style.display = "block";  // ✅ 在一开始就显示Loading
+
     console.log("🚀 正在初始化数据...");
     await loadAllNFTMetadata();   // 第一步：准备数据
     console.log("✅ 数据准备完毕，开始渲染NFT页面");
