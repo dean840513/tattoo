@@ -22,7 +22,7 @@ async function buy(listingId, price) {
       totalPrice
     );
     await tx.wait();
-    alert("✅ 购买成功！");
+    alert("✅ 购买成功！请在MetaMask收藏品中查看");
     await showTatBalance();
   } catch (err) {
     alert("❌ 购买失败：" + err.message);
