@@ -14,7 +14,7 @@ async function showDetail(listingId) {
     const price = ethers.utils.formatUnits(item.pricePerToken, 18);
 
     // 改成从metadata_1.json（根据listingId）读取
-    const metadataFile = `/cache/metadata_${listingId}.json`; // 假设文件放在 /cache/ 目录
+    const metadataFile = `cache/metadata_${listingId}.json`; // 假设文件放在 cache/ 目录
     const response = await fetch(metadataFile);
     if (!response.ok) throw new Error(`无法加载 metadata 文件 ${metadataFile}`);
 
