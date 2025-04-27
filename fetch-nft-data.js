@@ -3,6 +3,7 @@
 const fs = require('fs');
 const { ethers } = require('ethers');
 const fetch = require('node-fetch'); // 注意：需要安装 node-fetch
+const { keccak256, toUtf8Bytes } = require("ethers");
 
 // 📦 定义Provider
 const dataProvider = new ethers.JsonRpcProvider(
@@ -41,7 +42,7 @@ function computeHash(data) {
   const json = JSON.stringify(data, (key, value) =>
     typeof value === 'bigint' ? value.toString() : value
   );
-  return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(json));
+  return keccak256(toUtf8Bytes(json));
 }
 
 
