@@ -63,6 +63,7 @@ async function renderNFTs() {
       try {
         // 从 cache/metadata_${listingId}.json 加载商品的详细信息
         const metadataFile = `cache/metadata_${item.listingId}.json`;  // 获取 metadata 文件路径
+        console.log("开始获取：cache/metadata_${item.listingId}.json");
         const metadataResponse = await fetch(metadataFile);
         if (!metadataResponse.ok) throw new Error(`无法加载 metadata_${item.listingId}.json`);
 
