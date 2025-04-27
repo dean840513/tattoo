@@ -1,41 +1,47 @@
-async function showDetail(tokenId) {
+async function showDetail(listingId) {
   document.getElementById("nftOverlay").style.display = "flex";
-  try {
-    // 加载 metadata
-    const metaRes = await fetch("json/" + tokenId + ".json");
-    if (!metaRes.ok) throw new Error("无法加载 NFT Metadata 文件：" + metaRes.status);
-    const metadata = await metaRes.json();
 
+  try {
+    const cachedListingsRaw = localStorage.getItem("nft_listings_cache");
+    if (!cachedListingsRaw) throw new Error("没有找到本地Listings缓存");
+
+    const listings = JSON.parse(cachedListingsRaw);
+
+    const item = listings.find(x => x.listingId == listingId);
+    if (!item) throw new Error("未找到 listingId=" + listingId + " 的上架记录");
+
+    const tokenId = item.tokenId; // 取出真正的tokenId
+    const price = ethers.utils.formatUnits(item.pricePerToken, 18);
+
+    const metadataRaw = localStorage.getItem(`nft_metadata_cache_${listingId}`);
+    if (!metadataRaw) throw new Error(`没有找到 listingId=${listingId} 的Metadata缓存`);
+
+    const metadataObj = JSON.parse(metadataRaw);
+    const metadata = metadataObj.metadata || metadataObj;
+
+    // 后面显示内容就和原来一样了...
     document.getElementById("nftName").innerText = metadata.name;
     document.getElementById("nftDescription").innerText = metadata.description;
     document.getElementById("nftImage").src = metadata.image;
-
-    // 加载 listings
-    const listRes = await fetch("json/listings.json");
-    if (!listRes.ok) throw new Error("无法加载 listings.json 文件：" + listRes.status);
-    const listings = await listRes.json();
-
-    const item = listings.find(x => x.tokenId == tokenId && x.listed);
-    if (!item) throw new Error("未找到 tokenId=" + tokenId + " 的上架记录");
-
-    const price = item.price;
     document.getElementById("nftPrice").innerText = "价格：" + price + " TATTOO";
 
-    document.getElementById("buyButton").setAttribute("data-token-id", tokenId);
+    document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
     document.getElementById("buyButton").setAttribute("data-price", price);
 
     const attrHtml = (metadata.attributes || []).map(attr =>
       `<p>${attr.trait_type}: ${attr.value}</p>`
     ).join("");
     document.getElementById("nftAttributes").innerHTML = attrHtml;
-    // ✅ 添加动画 class，让 modal 淡入 + 放大
+
     document.getElementById("nftDetailView").classList.add("active");
+    await updateDetailButtons();
   } catch (err) {
-    console.error("❌ NFT 详情加载失败：", err);
-    alert("❌ 加载失败：" + err.message); // ✅ 直接弹窗给用户
-    backToList(); // 可选：返回列表页
+    console.error("❌ NFT详情加载失败：", err.message || err);
+    // alert("❌ 加载失败：" + err.message);
+    backToList();
   }
 }
+
 
 
 function backToList() {
@@ -46,9 +52,9 @@ function backToList() {
   }, 250);
 }
 
-function onNFTClick(tokenId) {
-  history.pushState({ tokenId: tokenId }, "", "#nft/" + tokenId);
-  showDetail(tokenId);
+function onNFTClick(listingId) {
+  history.pushState({ listingId: listingId }, "", "#nft/" + listingId);
+  showDetail(listingId);
 }
 
 function handleInitialLoad() {
@@ -68,22 +74,25 @@ function handlePopState() {
 }
 
 async function buyNFT() {
-  var tokenId = document.getElementById("buyButton").getAttribute("data-token-id");
+  var listingId = document.getElementById("buyButton").getAttribute("data-listing-id");
   var price = document.getElementById("buyButton").getAttribute("data-price");
 
   if (!signer) {
-    await connectWallet(); // ✅ 等待连接完成
+    await connectWallet();
 
     if (!signer) {
-      // alert("⚠️ 钱包连接失败，无法继续购买");
       return;
     }
   }
 
-  const listingId = parseInt(tokenId); // ✅ 如果你 listingId == tokenId，可直接用
+  if (!listingId || !price) {
+    alert("⚠️ 无法读取购买信息！");
+    return;
+  }
 
-  await buy(listingId, price); // ✅ 调用你写好的 buy() 函数
+  await buy(parseInt(listingId), price);
 }
+
 
 
 window.addEventListener("DOMContentLoaded", handleInitialLoad);
