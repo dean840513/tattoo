@@ -39,6 +39,7 @@ async function updateDetailButtons() {
   // 1. 钱包未连接
   if (!window.userAddress || !signer) {
     connectBtn.style.display = "inline-block";
+    console.log("111");
     return;
   }
 
