@@ -37,7 +37,7 @@ async function getListingsData() {
   const CACHE_VALID_TIME = 0 * 60 * 1000; // 5分钟
   const now = Date.now();
 
-  const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545"); // 本地Anvil
+  const provider = new ethers.providers.JsonRpcProvider("http://192.168.1.111:8545"); // 本地Anvil
   const marketplace = new ethers.Contract(window.marketplaceAddress, [
     "function totalListings() view returns (uint256)",
     "function getAllValidListings(uint256 startId, uint256 endId) view returns (tuple(" +
