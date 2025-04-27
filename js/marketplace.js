@@ -47,17 +47,18 @@ async function renderNFTs() {
   container.innerHTML = "";
 
   try {
-    // 从localStorage读取Listings缓存
-    const cachedListings = localStorage.getItem("nft_listings_cache");
-    if (!cachedListings) throw new Error("没有找到缓存的Listings数据");
+    // 从 /cache/listings.json 加载数据
+    const response = await fetch("/cache/listings.json");
+    if (!response.ok) throw new Error("无法加载Listings数据");
 
-    const listings = JSON.parse(cachedListings);
+    const listings = await response.json();
 
     for (const item of listings) {
-      // 这里根据你之前逻辑，假设status==1才是上架状态
+      // 这里只渲染 status == 1 的商品
       if (item.status !== 1) continue;
 
       try {
+        // 从 metadata 缓存读取数据
         const metadataRaw = localStorage.getItem(`nft_metadata_cache_${item.listingId}`);
         if (!metadataRaw) throw new Error(`没有找到ListingID=${item.listingId}对应的Metadata缓存`);
 
@@ -85,9 +86,10 @@ async function renderNFTs() {
       }
     }
   } catch (err) {
-    console.error("❌ 读取本地Listings缓存失败:", err.message || err);
+    console.error("❌ 读取Listings数据失败:", err.message || err);
     alert("⚠️ 商品列表加载失败，请稍后再试");
   } finally {
     loading.style.display = "none";
   }
 }
+
