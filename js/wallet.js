@@ -32,19 +32,21 @@ async function connectWallet() {
     }
   }
 
-  showWalletOverlay();
+  showWalletOverlay();  
 
   try {
     provider = new ethers.providers.Web3Provider(window.ethereum);
     await window.ethereum.request({ method: "eth_requestAccounts" });
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
+    window.userAddress = userAddress;
 
     document.getElementById("connectBtn").style.display = "none";
     document.getElementById("walletAddress").style.display = "inline";
     document.getElementById("walletAddress").innerText =
       "地址：" + userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-
+    
+    await updateDetailButtons();
     await checkApproval();
   } catch (err) {
     alert("连接失败：" + err.message);
@@ -115,13 +117,14 @@ async function approveTat() {
     warning.style.fontSize = "0.9rem";
     warning.style.textAlign = "left";
     overlayBox.appendChild(warning);
-  }
+  } 
 
   try {
     const tx = await tat.approve(marketplaceAddress, max);
     await tx.wait();
     alert("✅ 授权成功！");
-    await checkApproval();
+    await updateDetailButtons();
+    await checkApproval();    
   } catch (err) {
     alert("❌ 授权失败：" + err.message);
   } finally {
