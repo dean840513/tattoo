@@ -58,7 +58,7 @@ async function renderNFTs() {
       console.log("商品状态：", item.status);  // 打印每个商品的 status，确认是否有 status = 1 的商品
 
       // 这里只渲染 status == 1 的商品
-      if (item.status !== 1) continue;
+      // if (item.status !== 1) continue;
 
       try {
         // 从 cache/metadata_${listingId}.json 加载商品的详细信息
