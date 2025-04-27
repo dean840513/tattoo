@@ -1,0 +1,16 @@
+[
+  {
+    "listingId": "1",
+    "tokenId": "0",
+    "quantity": "2",
+    "pricePerToken": "1000000000000000000",
+    "startTimestamp": "1745207679",
+    "endTimestamp": "4900881280",
+    "listingCreator": "0x0855F2BAE5B9da9D8cfa4BaDD81a80D3e1FB77F6",
+    "assetContract": "0x3E992E72c14E974c7318E1D1F54ed9B4593B502b",
+    "currency": "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce",
+    "tokenType": "1",
+    "status": "1",
+    "reserved": false
+  }
+]
