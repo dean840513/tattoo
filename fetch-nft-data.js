@@ -38,9 +38,12 @@ function mapRawListing(raw) {
 }
 
 function computeHash(data) {
-  const json = JSON.stringify(data);
+  const json = JSON.stringify(data, (key, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  );
   return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(json));
 }
+
 
 // 📦 主要函数
 async function main() {
