@@ -99,7 +99,10 @@ async function main() {
     } else {
       console.log("✅ Listings数据有变化，更新缓存");
 
-      fs.writeFileSync(listingsFile, JSON.stringify(listings, null, 2));
+      fs.writeFileSync(listingsFile, JSON.stringify(listings, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+      , 2));
+
       fs.writeFileSync(listingsHashFile, latestHash);
 
       await fetchAllNFTMetadata(listings);
