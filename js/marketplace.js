@@ -49,21 +49,25 @@ async function renderNFTs() {
   try {
     // 从 cache/listings.json 加载数据
     const response = await fetch("cache/listings.json");
-    if (!response.ok) throw new Error("无法加载Listings数据");
+    if (!response.ok) throw new Error("无法加载 Listings 数据");
 
     const listings = await response.json();
+    console.log("🌟 Listings 数据：", listings);  // 打印 listings 数据，确认是否正确加载
 
     for (const item of listings) {
+      console.log("商品状态：", item.status);  // 打印每个商品的 status，确认是否有 status = 1 的商品
+
       // 这里只渲染 status == 1 的商品
       if (item.status !== 1) continue;
 
       try {
-        // 从 metadata 缓存读取数据
-        const metadataRaw = localStorage.getItem(`nft_metadata_cache_${item.listingId}`);
-        if (!metadataRaw) throw new Error(`没有找到ListingID=${item.listingId}对应的Metadata缓存`);
+        // 从 cache/metadata_${listingId}.json 加载商品的详细信息
+        const metadataFile = `cache/metadata_${item.listingId}.json`;  // 获取 metadata 文件路径
+        const metadataResponse = await fetch(metadataFile);
+        if (!metadataResponse.ok) throw new Error(`无法加载 metadata_${item.listingId}.json`);
 
-        const metadataObj = JSON.parse(metadataRaw);
-        const metadata = metadataObj.metadata || metadataObj; // 兼容老缓存格式
+        const metadata = await metadataResponse.json();
+        console.log("商品详情 metadata：", metadata);  // 打印每个商品的 metadata 数据
 
         const card = document.createElement("div");
         card.className = "card";
