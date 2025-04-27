@@ -99,9 +99,12 @@ async function main() {
     } else {
       console.log("✅ Listings数据有变化，更新缓存");
 
-      fs.writeFileSync(listingsFile, JSON.stringify(listings, (key, value) =>
-        typeof value === 'bigint' ? value.toString() : value
-      , 2));
+    fs.writeFileSync(listingsFile, JSON.stringify(
+      listings,
+      (key, value) => typeof value === 'bigint' ? value.toString() : value,
+      2
+    ));
+
 
       fs.writeFileSync(listingsHashFile, latestHash);
 
@@ -140,7 +143,12 @@ async function fetchNFTMetadata(nftContractAddress, tokenId, listingId) {
 
     const metadata = await res.json();
     const metadataFile = `./cache/metadata_${listingId}.json`;
-    fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 2));
+    fs.writeFileSync(metadataFile, JSON.stringify(
+      metadata,
+      (key, value) => typeof value === 'bigint' ? value.toString() : value,
+      2
+    ));
+
 
     console.log(`✅ Metadata保存成功：${metadataFile}`);
   } catch (err) {
