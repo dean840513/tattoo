@@ -10,7 +10,7 @@ const dataProvider = new ethers.JsonRpcProvider(
 );
 
 // 📦 定义你的Marketplace合约地址
-const marketplaceAddress = "你的Marketplace合约地址"; // <-- 记得改成你的地址！
+const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23"; // <-- 记得改成你的地址！
 
 // 小工具函数
 function toSafeString(val) {
