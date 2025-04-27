@@ -1,3 +1,9 @@
+// 📦 统一定义Provider
+const provider = new ethers.providers.JsonRpcProvider(
+  "https://polygon-mainnet.infura.io/v3/16dcd1224e3c45429d04fe6e9c7e788b"
+);
+// 注意改成你真实的Infura项目ID和正确链（Mainnet, Mumbai, Sepolia等）
+
 function toSafeString(val) {
   if (val?._isBigNumber) {
     return val.toString();
@@ -34,10 +40,10 @@ async function getListingsData() {
   const CACHE_KEY = "nft_listings_cache";
   const CACHE_TIME_KEY = "nft_listings_cache_time";
   const HASH_KEY = "nft_listings_cache_hash";
-  const CACHE_VALID_TIME = 0 * 60 * 1000; // 5分钟
+  const CACHE_VALID_TIME = 5 * 60 * 1000; // 5分钟
   const now = Date.now();
 
-  const provider = new ethers.providers.JsonRpcProvider("https://polygon-mainnet.infura.io/v3/16dcd1224e3c45429d04fe6e9c7e788b"); // 本地Anvil
+  // const provider = new ethers.providers.JsonRpcProvider("https://polygon-mainnet.infura.io/v3/16dcd1224e3c45429d04fe6e9c7e788b"); // 本地Anvil
   const marketplace = new ethers.Contract(window.marketplaceAddress, [
     "function totalListings() view returns (uint256)",
     "function getAllValidListings(uint256 startId, uint256 endId) view returns (tuple(" +
@@ -112,7 +118,7 @@ async function getListingsData() {
 // 📦 读取单个NFT Metadata并缓存
 async function fetchNFTMetadata(nftContractAddress, tokenId, listingId) {
   const CACHE_KEY = `nft_metadata_cache_${listingId}`;
-  const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
+  // const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
   const nftABI = [
     "function uri(uint256 tokenId) view returns (string)"
   ];
