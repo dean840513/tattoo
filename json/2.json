@@ -1,0 +1,10 @@
+{
+  "name": "Test Wine 2",
+  "description": "Test Wine 2",
+  "_image": "https://dean840513.github.io/tattoo/jpg/1.jpg",
+  "image": "http://localhost:8888/jpg/1.jpg",
+  "attributes": [
+    { "trait_type": "年份", "value": "2022" },
+    { "trait_type": "类型", "value": "干红" }
+  ]
+}
