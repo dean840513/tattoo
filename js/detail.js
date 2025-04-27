@@ -11,7 +11,7 @@ async function showDetail(listingId) {
     const item = listings.find(x => x.listingId == listingId);
     if (!item) throw new Error(`未找到 listingId=${listingId} 的商品`);
 
-    const tokenId = item.tokenId; // 获取 tokenId
+    // const tokenId = item.tokenId; // 获取 tokenId
     const price = ethers.utils.formatUnits(item.pricePerToken, 18); // 格式化价格
 
     // 根据 listingId 获取对应的 metadata 文件（metadata_${listingId}.json）
