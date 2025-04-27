@@ -47,8 +47,8 @@ async function renderNFTs() {
   container.innerHTML = "";
 
   try {
-    // 从 /cache/listings.json 加载数据
-    const response = await fetch("/cache/listings.json");
+    // 从 cache/listings.json 加载数据
+    const response = await fetch("cache/listings.json");
     if (!response.ok) throw new Error("无法加载Listings数据");
 
     const listings = await response.json();
