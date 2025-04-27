@@ -130,8 +130,7 @@ async function fetchNFTMetadata(nftContractAddress, tokenId, listingId) {
 
     // 处理IPFS链接
     if (uri.startsWith("ipfs://")) {
-      // uri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
-      uri = uri.replace("ipfs://", "https://d391b93f5f62d9c15f67142e43841acc.ipfscdn.io/ipfs/");
+      uri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
     }
     if (uri.includes("{id}")) {
       const hexId = ethers.BigNumber.from(tokenId).toHexString().substring(2).padStart(64, "0");
