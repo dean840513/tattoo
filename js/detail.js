@@ -22,7 +22,7 @@ async function showDetail(listingId) {
     // 后面显示内容就和原来一样了...
     document.getElementById("nftName").innerText = metadata.name;
     document.getElementById("nftDescription").innerText = metadata.description;
-    document.getElementById("nftImage").src = metadata.image;
+    document.getElementById("nftImage").src = resolveIPFS(metadata.image);
     document.getElementById("nftPrice").innerText = "价格：" + price + " TATTOO";
 
     document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
