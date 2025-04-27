@@ -2,33 +2,36 @@ async function showDetail(listingId) {
   document.getElementById("nftOverlay").style.display = "flex";
 
   try {
-    const cachedListingsRaw = localStorage.getItem("nft_listings_cache");
-    if (!cachedListingsRaw) throw new Error("没有找到本地Listings缓存");
+    // 从 /cache/listings.json 加载所有商品
+    const listingsResponse = await fetch("cache/listings.json");
+    if (!listingsResponse.ok) throw new Error("无法加载 Listings 数据");
+    const listings = await listingsResponse.json();
 
-    const listings = JSON.parse(cachedListingsRaw);
-
+    // 获取对应的商品（通过 listingId）
     const item = listings.find(x => x.listingId == listingId);
-    if (!item) throw new Error("未找到 listingId=" + listingId + " 的上架记录");
+    if (!item) throw new Error(`未找到 listingId=${listingId} 的商品`);
 
-    const tokenId = item.tokenId; // 取出真正的tokenId
-    const price = ethers.utils.formatUnits(item.pricePerToken, 18);
+    const tokenId = item.tokenId; // 获取 tokenId
+    const price = ethers.utils.formatUnits(item.pricePerToken, 18); // 格式化价格
 
-    // 改成从metadata_1.json（根据listingId）读取
-    const metadataFile = `cache/metadata_${listingId}.json`; // 假设文件放在 cache/ 目录
+    // 根据 listingId 获取对应的 metadata 文件（metadata_${listingId}.json）
+    const metadataFile = `cache/metadata_${listingId}.json`; // 假设文件放在 /cache/ 目录
     const response = await fetch(metadataFile);
     if (!response.ok) throw new Error(`无法加载 metadata 文件 ${metadataFile}`);
 
     const metadata = await response.json();
 
-    // 后面显示内容就和原来一样了...
+    // 更新页面上的商品信息
     document.getElementById("nftName").innerText = metadata.name;
     document.getElementById("nftDescription").innerText = metadata.description;
     document.getElementById("nftImage").src = resolveIPFS(metadata.image);
     document.getElementById("nftPrice").innerText = "价格：" + price + " TATTOO";
 
+    // 设置购买按钮的相关属性
     document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
     document.getElementById("buyButton").setAttribute("data-price", price);
 
+    // 渲染属性
     const attrHtml = (metadata.attributes || []).map(attr =>
       `<p>${attr.trait_type}: ${attr.value}</p>`
     ).join("");
@@ -41,6 +44,7 @@ async function showDetail(listingId) {
     backToList();
   }
 }
+
 
 
 
