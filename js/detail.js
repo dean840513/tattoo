@@ -13,11 +13,12 @@ async function showDetail(listingId) {
     const tokenId = item.tokenId; // 取出真正的tokenId
     const price = ethers.utils.formatUnits(item.pricePerToken, 18);
 
-    const metadataRaw = localStorage.getItem(`nft_metadata_cache_${listingId}`);
-    if (!metadataRaw) throw new Error(`没有找到 listingId=${listingId} 的Metadata缓存`);
+    // 改成从metadata_1.json（根据listingId）读取
+    const metadataFile = `/cache/metadata_${listingId}.json`; // 假设文件放在 /cache/ 目录
+    const response = await fetch(metadataFile);
+    if (!response.ok) throw new Error(`无法加载 metadata 文件 ${metadataFile}`);
 
-    const metadataObj = JSON.parse(metadataRaw);
-    const metadata = metadataObj.metadata || metadataObj;
+    const metadata = await response.json();
 
     // 后面显示内容就和原来一样了...
     document.getElementById("nftName").innerText = metadata.name;
@@ -37,10 +38,10 @@ async function showDetail(listingId) {
     await updateDetailButtons();
   } catch (err) {
     console.error("❌ NFT详情加载失败：", err.message || err);
-    // alert("❌ 加载失败：" + err.message);
     backToList();
   }
 }
+
 
 
 
