@@ -75,7 +75,8 @@ async function main() {
     console.log("🔍 正在拉取链上Listings...");
 
     const totalListings = await marketplace.totalListings();
-    const total = totalListings.toNumber();
+    const total = Number(totalListings);
+
     if (total === 0) {
       console.warn("⚠️ 当前链上没有任何Listing");
       fs.writeFileSync(listingsFile, JSON.stringify([]));
