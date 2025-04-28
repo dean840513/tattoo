@@ -6,17 +6,17 @@ const fetch = require('node-fetch'); // 注意：需要安装 node-fetch
 const { keccak256, toUtf8Bytes } = require("ethers");
 
 // 📦 定义Provider
-const dataProvider = new ethers.JsonRpcProvider(
-  "https://polygon-mainnet.infura.io/v3/16dcd1224e3c45429d04fe6e9c7e788b"
-  // "http://127.0.0.1:8545"
-);
+// Polygon
+const INFURA_ID = process.env.INFURA_ID;
+const provider = new ethers.providers.JsonRpcProvider(`https://mainnet.infura.io/v3/${INFURA_ID}`);
+// Anvil
+// const dataProvider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
 
 // 📦 定义你的Marketplace合约地址
 // Polygon
 const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23"; // <-- 记得改成你的地址！
-
 // Anvil
-//const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d"; // <-- 记得改成你的地址！
+// const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d"; // <-- 记得改成你的地址！
 
 // 小工具函数
 function toSafeString(val) {
