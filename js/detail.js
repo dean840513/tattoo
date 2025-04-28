@@ -2,37 +2,27 @@ async function showDetail(listingId) {
   document.getElementById("nftOverlay").style.display = "flex";
 
   try {
-    // 从 /cache/listings.json 加载所有商品
-    const listingsResponse = await fetch("cache/listings.json");
-    if (!listingsResponse.ok) throw new Error("无法加载 Listings 数据");
-    const listings = await listingsResponse.json();
+    // 从 /cache/all_metadata.json 加载所有商品
+    const response = await fetch("cache/all_metadata.json");
+    if (!response.ok) throw new Error("无法加载 all_metadata.json");
+    const allMetadata = await response.json();
 
-    // 获取对应的商品（通过 listingId）
-    const item = listings.find(x => x.listingId == listingId);
+    // 获取对应 listingId 的商品
+    const item = allMetadata.find(x => x.listingId == listingId);
     if (!item) throw new Error(`未找到 listingId=${listingId} 的商品`);
 
-    // const tokenId = item.tokenId; // 获取 tokenId
     const price = ethers.utils.formatUnits(item.pricePerToken, 18); // 格式化价格
 
-    // 根据 listingId 获取对应的 metadata 文件（metadata_${listingId}.json）
-    const metadataFile = `cache/metadata_${listingId}.json`; // 假设文件放在 /cache/ 目录
-    const response = await fetch(metadataFile);
-    if (!response.ok) throw new Error(`无法加载 metadata 文件 ${metadataFile}`);
-
-    const metadata = await response.json();
-
     // 更新页面上的商品信息
-    document.getElementById("nftName").innerText = metadata.name;
-    document.getElementById("nftDescription").innerText = metadata.description;
-    document.getElementById("nftImage").src = resolveIPFS(metadata.image);
+    document.getElementById("nftName").innerText = item.name;
+    document.getElementById("nftDescription").innerText = item.description;
+    document.getElementById("nftImage").src = resolveIPFS(item.image);
     document.getElementById("nftPrice").innerText = "价格：" + price + " TATTOO";
 
-    // 设置购买按钮的相关属性
     document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
     document.getElementById("buyButton").setAttribute("data-price", price);
 
-    // 渲染属性
-    const attrHtml = (metadata.attributes || []).map(attr =>
+    const attrHtml = (item.attributes || []).map(attr =>
       `<p>${attr.trait_type}: ${attr.value}</p>`
     ).join("");
     document.getElementById("nftAttributes").innerHTML = attrHtml;

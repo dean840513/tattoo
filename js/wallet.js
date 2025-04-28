@@ -1,5 +1,7 @@
-const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
-const tatTokenAddress = "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce";
+// const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
+// const tatTokenAddress = "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce";
+const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d";
+const tatTokenAddress = "0xE41c36a93D60cD01CE8D17EB93CD4579ac6288D0";
 window.marketplaceAddress = marketplaceAddress;
 window.tatTokenAddress = tatTokenAddress;
 
