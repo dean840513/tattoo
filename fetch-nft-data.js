@@ -7,11 +7,13 @@ const { keccak256, toUtf8Bytes } = require("ethers");
 
 // 📦 定义Provider
 const dataProvider = new ethers.JsonRpcProvider(
-  "https://polygon-mainnet.infura.io/v3/16dcd1224e3c45429d04fe6e9c7e788b"
+  // "https://polygon-mainnet.infura.io/v3/16dcd1224e3c45429d04fe6e9c7e788b"
+  "http://127.0.0.1:8545"
 );
 
 // 📦 定义你的Marketplace合约地址
-const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23"; // <-- 记得改成你的地址！
+// const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23"; // <-- 记得改成你的地址！
+const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d"; // <-- 记得改成你的地址！
 
 // 小工具函数
 function toSafeString(val) {
@@ -45,15 +47,13 @@ function computeHash(data) {
   return keccak256(toUtf8Bytes(json));
 }
 
-
 // 📦 主要函数
 async function main() {
   const CACHE_DIR = "./cache";
   const listingsFile = `${CACHE_DIR}/listings.json`;
   const listingsHashFile = `${CACHE_DIR}/listings_hash.txt`;
 
-  // 确保缓存目录存在
-  if (!fs.existsSync(CACHE_DIR)){
+  if (!fs.existsSync(CACHE_DIR)) {
     fs.mkdirSync(CACHE_DIR);
   }
 
@@ -100,20 +100,19 @@ async function main() {
 
     if (latestHash === oldHash) {
       console.log("🛢️ Listings数据无变化，跳过更新");
-    } else {
-      console.log("✅ Listings数据有变化，更新缓存");
+      return;
+    }
+
+    console.log("✅ Listings数据有变化，更新缓存");
 
     fs.writeFileSync(listingsFile, JSON.stringify(
       listings,
       (key, value) => typeof value === 'bigint' ? value.toString() : value,
       2
     ));
+    fs.writeFileSync(listingsHashFile, latestHash);
 
-
-      fs.writeFileSync(listingsHashFile, latestHash);
-
-      await fetchAllNFTMetadata(listings);
-    }
+    await fetchAllNFTMetadata(listings);
   } catch (err) {
     console.error("❌ 拉取Listings失败:", err.message || err);
   }
@@ -131,7 +130,6 @@ async function fetchNFTMetadata(nftContractAddress, tokenId, listingId) {
 
     let uri = await nftContract.uri(tokenId);
 
-    // 处理IPFS链接
     if (uri.startsWith("ipfs://")) {
       uri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
     }
@@ -147,25 +145,67 @@ async function fetchNFTMetadata(nftContractAddress, tokenId, listingId) {
 
     const metadata = await res.json();
     const metadataFile = `./cache/metadata_${listingId}.json`;
+
     fs.writeFileSync(metadataFile, JSON.stringify(
       metadata,
       (key, value) => typeof value === 'bigint' ? value.toString() : value,
       2
     ));
 
-
     console.log(`✅ Metadata保存成功：${metadataFile}`);
+
+    return metadata;
   } catch (err) {
     console.error(`❌ 读取NFT Metadata失败: ${err.message || err}`);
+    return null;
   }
 }
 
 // 📦 批量拉取
 async function fetchAllNFTMetadata(listings) {
+  const allMetadata = [];
+
   for (const item of listings) {
-    await fetchNFTMetadata(item.assetContract, item.tokenId, item.listingId);
+    const metadataFile = `./cache/metadata_${item.listingId}.json`;
+
+    if (fs.existsSync(metadataFile)) {
+      console.log(`🛢️ Metadata已存在，跳过 listingId=${item.listingId}`);
+      const metadataRaw = fs.readFileSync(metadataFile, 'utf8');
+      const metadata = JSON.parse(metadataRaw);
+      allMetadata.push({
+        listingId: item.listingId,
+        tokenId: item.tokenId,
+        assetContract: item.assetContract,
+        pricePerToken: item.pricePerToken,
+        name: metadata.name || "",
+        description: metadata.description || "",
+        image: metadata.image || "",
+        attributes: metadata.attributes || []
+      });
+    } else {
+      const metadata = await fetchNFTMetadata(item.assetContract, item.tokenId, item.listingId);
+      if (metadata) {
+        allMetadata.push({
+          listingId: item.listingId,
+          tokenId: item.tokenId,
+          assetContract: item.assetContract,
+          pricePerToken: item.pricePerToken,
+          name: metadata.name || "",
+          description: metadata.description || "",
+          image: metadata.image || "",
+          attributes: metadata.attributes || []
+        });
+      }
+    }
   }
-  console.log("🏁 所有NFT Metadata处理完成！");
+
+  fs.writeFileSync("./cache/all_metadata.json", JSON.stringify(
+    allMetadata,
+    (key, value) => typeof value === 'bigint' ? value.toString() : value,
+    2
+  ));
+
+  console.log("🏁 所有NFT Metadata处理完成！✅ 已生成 all_metadata.json");
 }
 
 main();
