@@ -23,6 +23,7 @@ jobs:
       - name: Commit and push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INFURA_ID: ${{ secrets.INFURA_ID }}
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
