@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '18'
 
-      - run: npm ci
+      - run: npm install
 
       - run: node fetch-nft-data.js
         env:
