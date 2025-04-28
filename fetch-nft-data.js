@@ -7,6 +7,9 @@ const { keccak256, toUtf8Bytes } = require("ethers");
 
 // 📦 定义Provider
 // Polygon
+if (!process.env.INFURA_ID) {
+  throw new Error('INFURA_ID is not set');
+}
 const INFURA_ID = process.env.INFURA_ID;
 const provider = new ethers.providers.JsonRpcProvider(`https://mainnet.infura.io/v3/${INFURA_ID}`);
 // Anvil
