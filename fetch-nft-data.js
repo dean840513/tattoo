@@ -1,23 +1,26 @@
 // fetch-nft-data.js
-
 const fs = require('fs');
 const { ethers } = require('ethers');
 const fetch = require('node-fetch'); // 注意：需要安装 node-fetch
 const { keccak256, toUtf8Bytes } = require("ethers");
 
-// 📦 定义Provider
-// Polygon
-if (!process.env.INFURA_ID) throw new Error('INFURA_ID is not set');
-const INFURA_ID = process.env.INFURA_ID;
-const dataProvider = new ethers.JsonRpcProvider(`https://polygon-mainnet.infura.io/v3/${INFURA_ID}`);
-// Anvil
-// const dataProvider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+const IS_GITHUB = process.env.GITHUB_ACTIONS === 'true'; // GitHub Actions自动带这个环境变量
+let dataProvider, marketplaceAddress;
 
-// 📦 定义你的Marketplace合约地址
-// Polygon
-const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23"; // <-- 记得改成你的地址！
-// Anvil
-// const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d"; // <-- 记得改成你的地址！
+// 📦 定义Provider & Marketplace合约地址
+if (IS_GITHUB) {
+  // Polygon
+  console.log('🚀 GitHub上运行，连接Polygon');
+  if (!process.env.INFURA_ID) throw new Error('INFURA_ID is not set');
+  const INFURA_ID = process.env.INFURA_ID;
+  dataProvider = new ethers.JsonRpcProvider(`https://polygon-mainnet.infura.io/v3/${INFURA_ID}`);
+  marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
+} else {
+  // Anvil
+  console.log('🌟 本地运行，连接Anvil');
+  dataProvider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+  marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d";
+}
 
 // 小工具函数
 function toSafeString(val) {

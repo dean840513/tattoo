@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "fetch-nft-data.js",
+  "scripts": {
+    "start": "node fetch-nft-data.js"
+  },   
   "dependencies": {
     "ethers": "^6.10.0",
     "node-fetch": "^2.6.11"

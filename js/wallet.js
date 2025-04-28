@@ -1,10 +1,20 @@
-//Polygon
-const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
-const tatTokenAddress = "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce";
+// 判断环境
+const hostname = window.location.hostname;
+const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
 
-// Anvil
-// const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d";
-// const tatTokenAddress = "0xE41c36a93D60cD01CE8D17EB93CD4579ac6288D0";
+if (isLocal) {
+  console.log('🌟 本地环境');
+  // Anvil
+  const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d";
+  const tatTokenAddress = "0xE41c36a93D60cD01CE8D17EB93CD4579ac6288D0";
+} else if (hostname.includes('github.io')) {
+  console.log('🚀 GitHub Pages环境');
+  //Polygon
+  const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23";
+  const tatTokenAddress = "0xEd3D92C6023516F33E8CEF41C7a583E4Ba5F23ce";
+} else {
+  console.log('🔍 其他环境（比如正式自定义域名部署）');
+}
 
 window.marketplaceAddress = marketplaceAddress;
 window.tatTokenAddress = tatTokenAddress;
