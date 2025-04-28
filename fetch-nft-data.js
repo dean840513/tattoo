@@ -12,7 +12,10 @@ const dataProvider = new ethers.JsonRpcProvider(
 );
 
 // 📦 定义你的Marketplace合约地址
+// Polygon
 const marketplaceAddress = "0x82aC52E1138344486C61C85697E8814a10060b23"; // <-- 记得改成你的地址！
+
+// Anvil
 //const marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d"; // <-- 记得改成你的地址！
 
 // 小工具函数
