@@ -31,13 +31,24 @@ async function buy(listingId, price) {
   }
 }
 
-function resolveIPFS(uri) {
-  if (!uri) return "";
-  if (uri.startsWith("ipfs://")) {
-    return uri.replace("ipfs://", "https://ipfs.io/ipfs/"); // 公共IPFS网关
-  }
-  return uri; // 如果不是ipfs协议，直接返回
+function resolveImageUrl(url) {
+  // 如果已经是完整公网地址，直接返回
+  // if (url.startsWith("https://cdn.") || url.startsWith("https://ipfs.") || url.includes("github.io")) {
+  //   return url;
+  // }
+
+  //ipfs
+  if (url.startsWith("ipfs://")) {
+    return url.replace("ipfs://", "https://ipfs.io/ipfs/"); // 公共IPFS网关
+  }  
+
+  // 解析文件名（如：1.jpg）
+  const filename = url.split("/").pop();
+
+  // 自动替换为当前页面所在域名下的 jpg 文件夹路径
+  return `${location.origin}/jpg/${filename}`;
 }
+
 
 async function renderNFTs() {
   const loading = document.getElementById("nftLoading");
@@ -59,7 +70,7 @@ async function renderNFTs() {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-          <img src="${resolveIPFS(item.image)}" alt="${item.name}" />
+          <img src="${resolveImageUrl(item.image)}" alt="${item.name}" />
           <h3>${item.name}</h3>
           <p>${item.description}</p>
           <p>${ethers.utils.formatUnits(item.pricePerToken, 18)} TATTOO</p>

@@ -18,7 +18,7 @@ async function showDetail(listingId) {
 
     document.getElementById("nftName").innerText = item.name;
     document.getElementById("nftDescription").innerText = item.description;
-    document.getElementById("nftImage").src = resolveIPFS(item.image);
+    document.getElementById("nftImage").src = resolveImageUrl(item.image);
     document.getElementById("nftPrice").innerText = "价格：" + price + " TATTOO";
 
     document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
