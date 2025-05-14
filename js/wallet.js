@@ -2,6 +2,8 @@
 const hostname = window.location.hostname;
 const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
 
+isLocal = true;
+
 if (isLocal) {
   console.log('🌟 本地环境');
   // Anvil
