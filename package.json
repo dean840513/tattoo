@@ -5,9 +5,11 @@
   "main": "fetch-nft-data.js",
   "scripts": {
     "start": "node fetch-nft-data.js"
-  },   
+  },
   "dependencies": {
     "ethers": "^6.10.0",
+    "localtunnel": "^2.0.2",
+    "ngrok": "^5.0.0-beta.2",
     "node-fetch": "^2.6.11"
   }
 }

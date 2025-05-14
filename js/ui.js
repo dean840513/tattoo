@@ -26,32 +26,30 @@ function copyLink() {
   }
 }
 
-async function updateDetailButtons() {
-  const connectBtn = document.getElementById("connectWalletBtn");
-  const approveBtn = document.getElementById("approveBtnDetail");
-  const buyBtn = document.getElementById("buyButton");
+function animateSwitch(hideIds = [], showIds = []) {
+  // 将要隐藏的元素处理为淡出动画
+  hideIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("active");
+    el.classList.add("fade-out");
+  });
 
-  // ❗确保三者全部先隐藏
-  connectBtn.style.display = "none";
-  approveBtn.style.display = "none";
-  buyBtn.style.display = "none";
+  // 延迟与动画时间一致，再切换显示状态
+  setTimeout(() => {
+    hideIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = "none";
+      el.classList.remove("fade-out");
+    });
 
-  // 1. 钱包未连接
-  if (!window.userAddress || !signer) {
-    connectBtn.style.display = "inline-block";
-    return;
-  }
-
-  // 2. 钱包连接但未授权
-  const tatContract = new ethers.Contract(window.tatTokenAddress, ERC20_ABI, signer);
-  const allowance = await tatContract.allowance(window.userAddress, window.marketplaceAddress);  
-  if (allowance.lt(ethers.utils.parseUnits("1", 18))) {
-    approveBtn.style.display = "inline-block";
-    return;
-  }
-
-  // 3. 已授权，显示购买按钮
-  buyBtn.style.display = "inline-block";
-
-  console.log("updateDetailButtons");
+    showIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = "block";
+      el.classList.add("view-container", "active");
+    });
+  }, 250); // 动画持续时间（ms），和 CSS 对应
 }
+

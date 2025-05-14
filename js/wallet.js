@@ -67,7 +67,6 @@ async function connectWallet() {
 
     displayWalletAddress(userAddress);
     
-    await updateDetailButtons();
     await checkApproval();
   } catch (err) {
     alert("连接失败：" + err.message);
@@ -144,7 +143,6 @@ async function approveTat() {
     const tx = await tat.approve(marketplaceAddress, max);
     await tx.wait();
     alert("✅ 授权成功！");
-    await updateDetailButtons();
     await checkApproval();    
   } catch (err) {
     alert("❌ 授权失败：" + err.message);
@@ -154,31 +152,47 @@ async function approveTat() {
 }
 
 async function connectWithMagic() {
-  const email = prompt("📧 请输入你的邮箱进行登录");
-  if (!email) {
-    alert("❌ 必须输入邮箱才能登录");
+  // 从本地恢复上次用过的邮箱
+  const cachedEmail = localStorage.getItem("magicUserEmail") || "";
+  const input = prompt("📧 请输入你的邮箱登录", cachedEmail);
+  if (!input) return;
+
+  const email = input.trim().toLowerCase();
+  if (!email.includes("@")) {
+    alert("请输入合法邮箱地址");
     return;
   }
 
   showWalletOverlay();
 
   try {
-    await magic.auth.loginWithEmailOTP({ email });
+    const isLoggedIn = await magic.user.isLoggedIn();
 
+    if (!isLoggedIn) {
+      // 首次登录或过期：发验证码
+      await magic.auth.loginWithEmailOTP({ email });
+    }
+
+    // 登录成功，恢复 signer 和地址
     provider = new ethers.providers.Web3Provider(magic.rpcProvider);
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
     window.userAddress = userAddress;
 
+    // 缓存邮箱
+    localStorage.setItem("magicUserEmail", email);
+
+    // UI 更新
     displayWalletAddress(userAddress);
-    await updateDetailButtons();
     await checkApproval();
   } catch (err) {
-    alert("连接失败：" + err.message);
+    console.error("❌ 登录失败:", err.message || err);
+    alert("邮箱登录失败，请重试");
   } finally {
     hideWalletOverlay();
   }
 }
+
 
 /**
  * 显示用户地址

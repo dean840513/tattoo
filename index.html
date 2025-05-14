@@ -12,8 +12,8 @@
     <h1>TATTOO NFT</h1>
     <div class="wallet-info">
       <div class="wallet-row">
-        <button id="connectBtn" class="primary-button">🦊 使用 MetaMask 登录</button>
-        <button id="connectBtnMagic" class="primary-button">📧 使用邮箱登录</button>
+        <button id="connectBtn" class="primary-button">🦊 MetaMask</button>
+        <button id="connectBtnMagic" class="primary-button">📧 邮箱登陆</button>
         <span id="walletAddress" style="display:none;"></span>
       </div>
       <div class="wallet-row">
@@ -26,7 +26,7 @@
     </div>
   </header>
 
-  <div class="hero">
+  <div class="hero" id="title">
     <h2>欢迎来到 TATTOO NFT 市场</h2>
     <p>探索、购买并收藏独特的酒类 NFT</p>
   </div>
@@ -46,12 +46,10 @@
       <button class="close-btn" onclick="backToList()">✖</button>
       <h2 id="nftName"></h2>
       <p id="nftDescription" style="color: #666; margin-bottom: 1rem;"></p>
-      <img id="nftImage" style="max-width: 300px;" />
+      <img id="nftImage" style="max-width: 200px;" />
       <div id="nftAttributes" style="color: #666; font-size: 0.9rem; margin: 0.3rem 0;"></div>
-      <p id="nftPrice" style="font-weight: bold;"></p>
-      <button id="connectWalletBtn" class="primary-button" style="display: none;" onclick="connectWallet()">🔗 连接钱包</button>
-      <button id="approveBtnDetail" class="primary-button" style="display: none;" onclick="approveTat()">✅ 授权 TATTOO Tokens</button>
-      <button id="buyButton" class="primary-button" style="display: none;" onclick="buyNFT()">🛒 立即购买</button>
+      <p id="nftPrice" style="font-weight: bold;"></p>      
+      <button id="buyButton" class="primary-button" onclick="buyNFT()">🛒 立即购买</button>
     </div>
   </div>
   

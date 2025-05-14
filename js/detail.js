@@ -1,19 +1,21 @@
 async function showDetail(listingId) {
-  document.getElementById("nftOverlay").style.display = "flex";
+  // document.getElementById("nftListView").style.display = "none";
+  // document.getElementById("title").style.display = "none";
+  // document.getElementById("nftOverlay").style.display = "block";
+
+  animateSwitch(["nftListView", "title"], ["nftOverlay"]);
+
 
   try {
-    // 从 /cache/all_metadata.json 加载所有商品
     const response = await fetch("cache/all_metadata.json");
     if (!response.ok) throw new Error("无法加载 all_metadata.json");
     const allMetadata = await response.json();
 
-    // 获取对应 listingId 的商品
     const item = allMetadata.find(x => x.listingId == listingId);
     if (!item) throw new Error(`未找到 listingId=${listingId} 的商品`);
 
-    const price = ethers.utils.formatUnits(item.pricePerToken, 18); // 格式化价格
+    const price = ethers.utils.formatUnits(item.pricePerToken, 18);
 
-    // 更新页面上的商品信息
     document.getElementById("nftName").innerText = item.name;
     document.getElementById("nftDescription").innerText = item.description;
     document.getElementById("nftImage").src = resolveIPFS(item.image);
@@ -27,40 +29,34 @@ async function showDetail(listingId) {
     ).join("");
     document.getElementById("nftAttributes").innerHTML = attrHtml;
 
-    document.getElementById("nftDetailView").classList.add("active");
-    await updateDetailButtons();
   } catch (err) {
     console.error("❌ NFT详情加载失败：", err.message || err);
     backToList();
   }
 }
 
-
-
-
-
 function backToList() {
   history.pushState({}, "", "#");
-  document.getElementById("nftDetailView").classList.remove("active");
-  setTimeout(() => {
-    document.getElementById("nftOverlay").style.display = "none";
-  }, 250);
+  animateSwitch(["nftOverlay"], ["title", "nftListView"]);
+
 }
 
 function onNFTClick(listingId) {
-  history.pushState({ listingId: listingId }, "", "#nft/" + listingId);
+  history.pushState({ listingId }, "", "#nft/" + listingId);
   showDetail(listingId);
 }
 
 function handleInitialLoad() {
-  var match = location.hash.match(/^#nft\/(\d+)/);
+  const match = location.hash.match(/^#nft\/(\d+)/);
   if (match) {
     showDetail(match[1]);
+  } else {
+    backToList();
   }
 }
 
 function handlePopState() {
-  var match = location.hash.match(/^#nft\/(\d+)/);
+  const match = location.hash.match(/^#nft\/(\d+)/);
   if (match) {
     showDetail(match[1]);
   } else {
@@ -69,15 +65,13 @@ function handlePopState() {
 }
 
 async function buyNFT() {
-  var listingId = document.getElementById("buyButton").getAttribute("data-listing-id");
-  var price = document.getElementById("buyButton").getAttribute("data-price");
+  const btn = document.getElementById("buyButton");
+  const listingId = btn.getAttribute("data-listing-id");
+  const price = btn.getAttribute("data-price");
 
   if (!signer) {
-    await connectWallet();
-
-    if (!signer) {
-      return;
-    }
+    alert("⚠️ 请先登陆");
+    if (!signer) return;
   }
 
   if (!listingId || !price) {
@@ -88,13 +82,5 @@ async function buyNFT() {
   await buy(parseInt(listingId), price);
 }
 
-
-
 window.addEventListener("DOMContentLoaded", handleInitialLoad);
 window.addEventListener("popstate", handlePopState);
-document.getElementById("nftOverlay").addEventListener("click", function (e) {
-  // 判断是否点击的正是遮罩本身，而不是 modal 内容
-  if (e.target.id === "nftOverlay") {
-    backToList(); // ✅ 关闭浮窗
-  }
-});
