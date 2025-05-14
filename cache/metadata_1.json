@@ -1,0 +1,14 @@
+{
+  "name": "Test Wine 1",
+  "description": "Just for test 0419",
+  "background_color": "",
+  "external_url": "",
+  "image": "ipfs://QmeLFmZd8rC11fcTZUfW84sLJDEmvnuuh7JjguShJ9HUip/0.jpg",
+  "animation_url": "",
+  "attributes": [
+    {
+      "trait_type": "exchange_date",
+      "value": "20260101"
+    }
+  ]
+}

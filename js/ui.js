@@ -36,13 +36,9 @@ async function updateDetailButtons() {
   approveBtn.style.display = "none";
   buyBtn.style.display = "none";
 
-  console.log("111");
-
   // 1. 钱包未连接
   if (!window.userAddress || !signer) {
     connectBtn.style.display = "inline-block";
-    if (!window.userAddress) console.log("222");
-    if (!signer) console.log("333");
     return;
   }
 
