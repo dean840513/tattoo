@@ -37,7 +37,8 @@ window.MARKETPLACE_ABI = MARKETPLACE_ABI;
 // Magic 初始化（记得替换为你自己的 public key）
 const magic = new Magic("pk_live_30B25ED651B53D8B", {
   network: {
-    rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
+    // rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
+    rpcUrl: "http://192.168.1.111:8545", // 或主网 https://polygon-rpc.com
     chainId: 1337                    // 主网为 137
   }
 });
