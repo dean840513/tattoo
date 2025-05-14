@@ -32,6 +32,14 @@ const MARKETPLACE_ABI = [
 
 window.MARKETPLACE_ABI = MARKETPLACE_ABI;
 
+// Magic 初始化（记得替换为你自己的 public key）
+const magic = new Magic("pk_live_30B25ED651B53D8B", {
+  network: {
+    rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
+    chainId: 1337                    // 主网为 137
+  }
+});
+
 let provider, signer, userAddress;
 
 async function connectWallet() {
@@ -57,10 +65,7 @@ async function connectWallet() {
     userAddress = await signer.getAddress();
     window.userAddress = userAddress;
 
-    document.getElementById("connectBtn").style.display = "none";
-    document.getElementById("walletAddress").style.display = "inline";
-    document.getElementById("walletAddress").innerText =
-      "地址：" + userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+    displayWalletAddress(userAddress);
     
     await updateDetailButtons();
     await checkApproval();
@@ -146,4 +151,43 @@ async function approveTat() {
   } finally {
     hideWalletOverlay();
   }
+}
+
+async function connectWithMagic() {
+  const email = prompt("📧 请输入你的邮箱进行登录");
+  if (!email) {
+    alert("❌ 必须输入邮箱才能登录");
+    return;
+  }
+
+  showWalletOverlay();
+
+  try {
+    await magic.auth.loginWithEmailOTP({ email });
+
+    provider = new ethers.providers.Web3Provider(magic.rpcProvider);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    window.userAddress = userAddress;
+
+    displayWalletAddress(userAddress);
+    await updateDetailButtons();
+    await checkApproval();
+  } catch (err) {
+    alert("连接失败：" + err.message);
+  } finally {
+    hideWalletOverlay();
+  }
+}
+
+/**
+ * 显示用户地址
+ */
+function displayWalletAddress(address) {
+  document.getElementById("connectBtnMagic").style.display = "none";
+  document.getElementById("connectBtn").style.display = "none";
+  document.getElementById("walletAddress").style.display = "inline";
+  document.getElementById("walletAddress").innerText =
+    // "地址：" + address.slice(0, 6) + "..." + address.slice(-4);
+    "地址：" + address;
 }

@@ -12,7 +12,8 @@
     <h1>TATTOO NFT</h1>
     <div class="wallet-info">
       <div class="wallet-row">
-        <button id="connectBtn" class="primary-button">🔗 连接钱包</button>
+        <button id="connectBtn" class="primary-button">🦊 使用 MetaMask 登录</button>
+        <button id="connectBtnMagic" class="primary-button">📧 使用邮箱登录</button>
         <span id="walletAddress" style="display:none;"></span>
       </div>
       <div class="wallet-row">
@@ -81,6 +82,7 @@
 
 <!-- 加载脚本：顺序很重要 -->
 <script src="js/ethers.umd.min.js"></script> <!-- ethers库，必须最先 -->
+<script src="magic.js"></script>
 <script src="js/ui.js"></script>              <!-- 通用UI -->
 <script src="js/wallet.js"></script>           <!-- 钱包管理 -->
 <script src="js/marketplace.js"></script>      <!-- marketplace调用 -->
