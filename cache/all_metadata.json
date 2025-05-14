@@ -6,7 +6,7 @@
     "pricePerToken": "1000000000000000000",
     "name": "2021 赤霞珠珍藏",
     "description": "一款经典的中国赤霞珠，橡木桶熟成12个月。",
-    "image": "http://192.168.1.111:8888/jpg/1.jpg",
+    "image": "https://tattoo-1cd.pages.dev/jpg/1.jpg",
     "attributes": [
       {
         "trait_type": "年份",
@@ -25,7 +25,7 @@
     "pricePerToken": "5000000000000000000",
     "name": "2022 西拉干红",
     "description": "香气浓郁，口感柔顺，适合搭配烧烤。",
-    "image": "http://192.168.1.111:8888/jpg/1.jpg",
+    "image": "https://tattoo-1cd.pages.dev/jpg/1.jpg",
     "attributes": [
       {
         "trait_type": "年份",
@@ -44,7 +44,7 @@
     "pricePerToken": "10000000000000000000",
     "name": "Test Wine 2",
     "description": "Test Wine 2",
-    "image": "http://192.168.1.111:8888/jpg/1.jpg",
+    "image": "https://tattoo-1cd.pages.dev/jpg/1.jpg",
     "attributes": [
       {
         "trait_type": "年份",
@@ -63,7 +63,7 @@
     "pricePerToken": "10000000000000000000",
     "name": "Test Wine 2",
     "description": "Test Wine 2",
-    "image": "http://192.168.1.111:8888/jpg/1.jpg",
+    "image": "https://tattoo-1cd.pages.dev/jpg/1.jpg",
     "attributes": [
       {
         "trait_type": "年份",
