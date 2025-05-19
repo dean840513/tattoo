@@ -1,0 +1,414 @@
+// ========== 文件: wallet.js ==========
+marketplaceAddress = "0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3";
+
+const MARKETPLACE_ABI = [
+  "function redeem(uint256 listingId)",
+  "function pointBalanceOf(address user) view returns (uint256)",
+  "function getAllList() view returns (tuple(string uri,uint256 cost,uint256 stock,uint8 status,address creator,uint256 createdAt)[])"
+];
+
+// Magic 初始化（记得替换为你自己的 public key）
+const magic = new Magic("pk_live_30B25ED651B53D8B", {
+  network: {
+    rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
+    chainId: 1337                    // 主网为 137
+  }
+});
+
+let provider, signer, userAddress;
+
+async function connectWallet() {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (!window.ethereum || !window.ethereum.isMetaMask) {
+    if (isMobile) {
+      document.getElementById("mobileAlert").style.display = "block";
+      document.getElementById("siteLink").value = window.location.href;
+      return;
+    } else {
+      alert("请先安装 MetaMask 插件！");
+      window.location.href = "https://metamask.app.link/";
+      return;
+    }
+  }
+
+  showWalletOverlay();
+
+  try {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    window.userAddress = userAddress;
+
+    displayWalletAddress(userAddress);
+    await showTatBalance();
+
+  } catch (err) {
+    alert("连接失败：" + err.message);
+  } finally {
+    hideWalletOverlay();
+  }
+}
+
+async function showTatBalance() {
+  try {
+    const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
+    const balance = await wineContract.pointBalanceOf(userAddress);
+    document.getElementById("tatBalance").innerText = `我的葡萄：${ethers.utils.formatUnits(balance, 0)} 🍇`;
+    document.getElementById("tatBalance").style.display = "inline";
+  } catch (err) {
+    console.error("查询积分失败:", err);
+    alert("⚠️ 获取积分失败，请稍后重试");
+  }
+}
+
+async function connectWithMagic() {
+  // 从本地恢复上次用过的邮箱
+  const cachedEmail = localStorage.getItem("magicUserEmail") || "";
+  const input = prompt("📧 请输入你的邮箱登录", cachedEmail);
+  if (!input) return;
+
+  const email = input.trim().toLowerCase();
+  if (!email.includes("@")) {
+    alert("请输入合法邮箱地址");
+    return;
+  }
+
+  showWalletOverlay();
+
+  try {
+    const isLoggedIn = await magic.user.isLoggedIn();
+
+    // isLoggedIn = false;
+
+    if (!isLoggedIn) {
+      // 首次登录或过期：发验证码
+      await magic.auth.loginWithEmailOTP({ email });
+    }
+
+    // 登录成功，恢复 signer 和地址
+    provider = new ethers.providers.Web3Provider(magic.rpcProvider);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    window.userAddress = userAddress;
+    await showTatBalance();
+
+    // 缓存邮箱
+    localStorage.setItem("magicUserEmail", email);
+
+    // UI 更新
+    displayWalletAddress(userAddress);
+  } catch (err) {
+    console.error("❌ 登录失败:", err.message || err);
+    alert("邮箱登录失败，请重试");
+  } finally {
+    hideWalletOverlay();
+  }
+}
+
+
+/**
+ * 显示用户地址
+ */
+function displayWalletAddress(address) {
+  document.getElementById("connectBtnMagic").style.display = "none";
+  document.getElementById("connectBtn").style.display = "none";
+  document.getElementById("walletAddress").style.display = "inline";
+  document.getElementById("walletAddress").innerText =
+    // "地址：" + address.slice(0, 6) + "..." + address.slice(-4);
+    "地址：" + address;
+}
+
+// ========== 文件: ui.js ==========
+
+function showWalletOverlay() {
+  document.getElementById("walletOverlay").style.display = "flex";
+}
+
+function hideWalletOverlay() {
+  document.getElementById("walletOverlay").style.display = "none";
+  const warning = document.getElementById("walletWarning");
+  if (warning) warning.remove();
+}
+
+function closeMobileAlert() {
+  document.getElementById("mobileAlert").style.display = "none";
+}
+
+function copyLink() {
+  try {
+    const input = document.getElementById("siteLink");
+    input.select();
+    input.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    alert("✅ 链接已复制，请前往 MetaMask App 打开浏览器粘贴访问！");
+    window.location.href = "https://metamask.app.link/";
+  } catch (err) {
+    console.error("复制链接失败:", err);
+    alert("❌ 复制失败，请手动复制链接");
+  }
+}
+
+function animateSwitch(hideIds = [], showIds = []) {
+  // 将要隐藏的元素处理为淡出动画
+  hideIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("active");
+    el.classList.add("fade-out");
+  });
+
+  // 延迟与动画时间一致，再切换显示状态
+  setTimeout(() => {
+    hideIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = "none";
+      el.classList.remove("fade-out");
+    });
+
+    showIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = "block";
+      el.classList.add("view-container", "active");
+    });
+  }, 250); // 动画持续时间（ms），和 CSS 对应
+}
+
+// ========== 文件: marketplace.js ==========
+
+async function buy(listingId) {
+  const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
+  showWalletOverlay();
+
+  try {
+
+    console.log("📦 调用参数：", {
+      listingId,
+      userAddress,
+      quantity: 1
+    });
+
+    const tx = await wineContract.redeem(
+      listingId
+    );
+    await tx.wait();
+    alert("✅ 购买成功！请在MetaMask收藏品中查看");
+    await showTatBalance();
+  } catch (err) {
+    alert("❌ 购买失败：" + err.message);
+  } finally {
+    hideWalletOverlay();
+  }
+}
+
+function resolveImageUrl(url) {
+  try {
+    // 尝试解析成 URL 对象（支持绝对路径）
+    const parsedUrl = new URL(url);
+
+    // 替换主机名和协议为当前页面的
+    parsedUrl.protocol = location.protocol;
+    parsedUrl.host = location.host;
+
+    return parsedUrl.toString();
+  } catch (err) {
+    // 如果不是合法的 URL（如 IPFS 格式），再按特殊逻辑处理
+    if (url.startsWith("ipfs://")) {
+      return url.replace("ipfs://", "https://ipfs.io/ipfs/");
+    }
+
+    // fallback：相对路径 → 补全为当前域名
+    return `${location.origin}/${url.replace(/^\/+/, '')}`;
+  }
+}
+
+// 缓存商品列表
+async function fetchListingsWithCache() {
+  const CACHE_KEY = "cachedListings";
+  const TIMESTAMP_KEY = "cachedListingsTimestamp";
+  const CACHE_DURATION = 30 * 1000; // 30秒
+
+  const now = Date.now();
+  const last = parseInt(localStorage.getItem(TIMESTAMP_KEY) || "0");
+
+  if (now - last < CACHE_DURATION) {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        console.log("📦 从 localStorage 加载商品列表");
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn("⚠️ 缓存解析失败，将重新请求区块链");
+    }
+  }
+
+  console.log("🔄 正在从区块链重新加载商品...");
+  const publicProvider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
+  const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, publicProvider);
+  const listings = await wineContract.getAllList();
+
+  // 转成 JSON 可序列化格式（结构体数组中可能有 BigNumber）
+  const simplified = listings.map(item => ({
+    uri: item.uri,
+    cost: item.cost.toString(),
+    stock: item.stock.toString(),
+    status: item.status,
+    creator: item.creator,
+    createdAt: item.createdAt.toString()
+  }));
+
+  localStorage.setItem(CACHE_KEY, JSON.stringify(simplified));
+  localStorage.setItem(TIMESTAMP_KEY, now.toString());
+
+  return simplified;
+}
+
+// 显示列表
+async function renderNFTs() {
+  const loading = document.getElementById("nftLoading");
+  const container = document.getElementById("nftGrid");
+
+  loading.style.display = "block";
+  container.innerHTML = "";
+
+  try {
+    const listings = await fetchListingsWithCache();
+
+    for (let i = 0; i < listings.length; i++) {
+      const item = listings[i];
+      if (parseInt(item.status) !== 1) continue; // 只显示 status=1 的上架商品
+
+      try {
+        const metadataUrl = resolveImageUrl(item.uri);
+        const res = await fetch(metadataUrl);
+        const metadata = await res.json();
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${resolveImageUrl(metadata.image)}" alt="${metadata.name}" />
+          <h3>${metadata.name}</h3>
+          <p>${metadata.description}</p>
+          <p>价格：${ethers.utils.formatUnits(item.cost, 0)} 🍇</p>
+          <p>库存：${item.stock}</p>
+          <button class="primary-button">🛒 购买</button>
+        `;
+
+        card.onclick = function () {
+          onNFTClick(i); // i 对应 listingId（数组索引）
+        };
+
+        container.appendChild(card);
+      } catch (err) {
+        console.warn(`❌ 商品 [${i}] 元数据加载失败:`, err.message || err);
+      }
+    }
+  } catch (err) {
+    console.error("❌ 从合约读取商品失败:", err.message || err);
+    alert("⚠️ 商品加载失败，请稍后重试");
+  } finally {
+    loading.style.display = "none";
+  }
+}
+
+
+// ========== 文件: detail.js ==========
+
+async function showDetail(listingId) {
+  animateSwitch(["nftListView", "title"], ["nftOverlay"]);
+
+  try {
+    const listings = await fetchListingsWithCache();
+    const item = listings[listingId];
+    if (!item) throw new Error(`未找到 listingId=${listingId} 的商品`);
+
+    const metadataUrl = resolveImageUrl(item.uri);
+    const res = await fetch(metadataUrl);
+    const metadata = await res.json();
+
+    const price = ethers.utils.formatUnits(item.cost.toString(), 0);
+    const created = new Date(parseInt(item.createdAt.toString()) * 1000).toLocaleString();
+
+    document.getElementById("nftName").innerText = metadata.name || "未知名称";
+    document.getElementById("nftDescription").innerText = metadata.description || "暂无描述";
+    document.getElementById("nftImage").src = resolveImageUrl(metadata.image);
+    document.getElementById("nftPrice").innerText = `价格：${price} 🍇`;
+
+    // 🍇 构建 attributes 展示（如 品种: 赤霞珠）
+    const attrHtml = (metadata.attributes || []).map(attr =>
+      `<p>${attr.trait_type || attr.key}: ${attr.value}</p>`
+    ).join("");
+
+    // 组合显示详情区块
+    document.getElementById("nftAttributes").innerHTML = `
+      <p>库存：${item.stock.toString()}</p>
+      <p>上架时间：${created}</p>
+      ${attrHtml}
+    `;
+
+    document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
+  } catch (err) {
+    console.error("❌ NFT详情加载失败：", err.message || err);
+    backToList();
+  }
+}
+
+
+
+function backToList() {
+  history.pushState({}, "", "#");
+  animateSwitch(["nftOverlay"], ["title", "nftListView"]);
+
+}
+
+function onNFTClick(listingId) {
+  history.pushState({ listingId }, "", "#nft/" + listingId);
+  showDetail(listingId);
+}
+
+function handleInitialLoad() {
+  const match = location.hash.match(/^#nft\/(\d+)/);
+  if (match) {
+    showDetail(match[1]);
+  } else {
+    backToList();
+  }
+}
+
+function handlePopState() {
+  const match = location.hash.match(/^#nft\/(\d+)/);
+  if (match) {
+    showDetail(match[1]);
+  } else {
+    backToList();
+  }
+}
+
+async function buyNFT() {
+  const btn = document.getElementById("buyButton");
+  const listingId = btn.getAttribute("data-listing-id");
+  if (!signer) {
+    alert("⚠️ 请先登陆");
+    if (!signer) return;
+  }
+
+  if (!listingId) {
+    alert("⚠️ 无法读取购买信息！");
+    return;
+  }
+
+  await buy(parseInt(listingId));
+}
+
+window.addEventListener("DOMContentLoaded", handleInitialLoad);
+window.addEventListener("popstate", handlePopState);
+
+
+// ========== 文件: main.js ==========
+
+document.getElementById("connectBtn").onclick = connectWallet;
+document.getElementById("connectBtnMagic").onclick = connectWithMagic;
+renderNFTs(); 

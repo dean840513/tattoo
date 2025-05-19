@@ -19,7 +19,7 @@ if (IS_GITHUB) {
   // Anvil
   console.log('🌟 本地运行，连接Anvil');
   dataProvider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-  marketplaceAddress = "0xBc65508443bE8008Cf5af3973CCeF97F1Ea8888d";
+  marketplaceAddress = "0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3";
 }
 
 // 小工具函数
