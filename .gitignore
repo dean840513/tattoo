@@ -16,6 +16,5 @@ package-lock.json
 dist/
 build/
 .cache/
-cache/
 proxy-on.bat
 proxy-off.bat

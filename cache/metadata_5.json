@@ -1,0 +1,15 @@
+{
+  "name": "2022 西拉干红",
+  "description": "香气浓郁，口感柔顺，适合搭配烧烤。",
+  "image": "https://dean840513.github.io/jpg/1.jpg",
+  "attributes": [
+    {
+      "trait_type": "年份",
+      "value": "2022"
+    },
+    {
+      "trait_type": "类型",
+      "value": "干红"
+    }
+  ]
+}
