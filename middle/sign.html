@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>签名授权购买 NFT</title>
+</head>
+
+<body>
+	<h2>🍷 NFT 授权签名工具</h2>
+
+	<label>用户地址：</label><br />
+	<input id="user" style="width: 400px;" value="0x321C4FF77f9069B520833fE938061468C9205D5E"><br /><br />
+
+	<label>商品 URI：</label><br />
+	<input id="uri" style="width: 400px;" value="http://127.0.0.1:8888/json/0.json"><br /><br />
+
+	<label>价格（积分数量）：</label><br />
+	<input id="cost" style="width: 100px;" value="10"><br /><br />
+
+	<label>截止时间（Unix 时间戳）：</label><br />
+	<input id="deadline" style="width: 200px;" value=""><br /><br />
+
+	<label>Nonce：</label><br />
+	<input id="nonce" style="width: 100px;"><br /><br />
+
+	<label>合约地址（WinePlatform）：</label><br />
+	<input id="wallet" style="width: 400px;" value="0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3"><br /><br />
+
+	<button onclick="signAndSend()">📤 发送</button>
+
+	<h3>签名结果：</h3>
+	<textarea id="output" style="width: 100%; height: 100px;"></textarea>
+
+	<script src="ethers.umd.min.js"></script>
+	<script>
+		async function signAndSend() {
+			if (!window.ethereum) {
+				alert("请先安装 MetaMask");
+				return;
+			}
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			const wallet = document.getElementById("wallet").value; // ✅ 合约地址字符串
+			const user = document.getElementById("user").value;
+			const uri = document.getElementById("uri").value;
+			const cost = parseInt(document.getElementById("cost").value);
+			const deadline = parseInt(document.getElementById("deadline").value);
+
+			const abi = [
+				"function userNonce(address) view returns (uint256)",
+				"function pointBalanceOf(address) view returns (uint256)"
+			];
+
+			const contract = new ethers.Contract(wallet, abi, provider);
+			const currentNonce = await contract.userNonce(user);
+			const balance = await contract.pointBalanceOf(user);
+			document.getElementById("nonce").value = currentNonce;
+
+			const nonce = parseInt(document.getElementById("nonce").value);
+
+			if (balance < cost) {
+				alert(`❌ 您当前积分为 ${balance}，不足以兑换该商品（需要 ${cost}）`);
+				return;
+			}
+
+			if (!user || !uri || isNaN(cost) || isNaN(deadline) || isNaN(nonce) || !wallet) {
+				alert("请填写所有字段");
+				return;
+			}
+
+			try {
+				// ✅ 1. 构造 hash 并签名
+				const hash = ethers.solidityPackedKeccak256(
+					["address", "string", "uint256", "uint256", "uint256", "address"],
+					[user, uri, cost, deadline, nonce, wallet]
+				);
+				const bytes = ethers.getBytes(hash);
+				const signature = await signer.signMessage(bytes);
+				document.getElementById("output").value = signature;
+
+				// ✅ 2. 构造 payload 并发送
+				const payload = {
+					user,
+					uri,
+					cost,
+					deadline,
+					nonce,
+					signature
+				};
+
+				const response = await fetch("http://localhost:3000/redeem", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(payload)
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					alert("❌ 合约调用失败: " + result.message);
+					console.error(result);
+				} else {
+					alert("✅ NFT 铸造成功！交易哈希: " + result.txHash);
+					console.log(result);
+				}
+			} catch (err) {
+				console.error(err);
+				alert("❌ 签名或发送失败: " + err.message);
+			}
+		}
+
+
+		// 自动填充当前时间 + 1 小时为默认 deadline
+		window.onload = () => {
+			const now = Math.floor(Date.now() / 1000);
+			document.getElementById("deadline").value = now + 3600;
+		};
+	</script>
+</body>
+
+</html>
