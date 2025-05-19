@@ -91,7 +91,7 @@ contract Wine1155Platform is ERC1155, Ownable {
     }
 
     // ======================== URI 可升级模板 ========================
-    constructor() ERC1155("ipfs://QmYourRootCID/{id}.json") {}
+    constructor() ERC1155("ipfs://QmYourRootCID/{id}.json") Ownable(msg.sender) {}
 
     function setURI(string memory newuri) public onlyOwner {
         _setURI(newuri);
