@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>手动创建商品</title>
+</head>
+<body>
+  <h2>手动录入商品信息</h2>
+
+  <label>商品ID：</label><br />
+  <input type="text" id="productId" value="001" placeholder="例如 001" /><br /><br />
+
+  <label>商品名称：</label><br />
+  <input type="text" id="name" value="2021 赤霞珠珍藏" ="例如 2021 赤霞珠珍藏" /><br /><br />
+
+  <label>商品描述：</label><br />
+  <textarea id="description" rows="3" placeholder="例如 橡木桶熟成12个月...">橡木桶熟成12个月</textarea><br /><br />
+
+  <label>图片地址：</label><br />
+  <input type="text" id="image" value="https://example.com/image.jpg" placeholder="例如 https://example.com/image.jpg" /><br /><br />
+
+  <label>年份：</label>
+  <input type="text" id="year" value="2021" placeholder="例如 2021" /><br /><br />
+
+  <label>类型：</label>
+  <input type="text" id="type" value="干红" placeholder="例如 干红" /><br /><br />
+
+  <button onclick="submitProduct()">上传商品</button>
+
+  <pre id="result"></pre>
+
+  <script>
+    async function submitProduct() {
+      const result = document.getElementById("result");
+
+      const productId = document.getElementById("productId").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const image = document.getElementById("image").value.trim();
+      const year = document.getElementById("year").value.trim();
+      const type = document.getElementById("type").value.trim();
+
+      if (!productId || !name || !image) {
+        result.textContent = "❌ 请填写商品ID、名称和图片地址";
+        return;
+      }
+
+      const payload = {
+        name,
+        description,
+        image,
+        attributes: [
+          { trait_type: "年份", value: year },
+          { trait_type: "类型", value: type }
+        ]
+      };
+
+      try {
+        const res = await fetch(`http://127.0.0.1:8787/write?productId=${productId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        result.textContent = res.ok ? `✅ 成功：${text}` : `❌ 失败：${text}`;
+      } catch (err) {
+        result.textContent = "❌ 请求错误：" + err.message;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>商品列表</title>
+</head>
+<body>
+  <h1>商户商品</h1>
+  <button onclick="fetchAll()">📦 获取全部商品</button>
+  <div id="output">请点击上方按钮加载商品</div>
+
+  <script>
+    async function fetchAll() {
+      const output = document.getElementById("output");
+      output.innerText = "加载中...";
+
+      try {
+        const res = await fetch("http://127.0.0.1:8787/list");
+        console.log(res);
+        const data = await res.json();
+
+        
+
+        output.innerText = JSON.stringify(data, null, 2);
+      } catch (e) {
+        output.innerText = "❌ 获取失败：" + e.message;
+      }
+    }
+  </script>
+</body>
+</html>
