@@ -2,7 +2,7 @@
 marketplaceAddress = "0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3";
 
 const MARKETPLACE_ABI = [
-  "function redeem(uint256 listingId)",
+  "function redeem(uint256 tokenid)",
   "function pointBalanceOf(address user) view returns (uint256)",
   "function getAllList() view returns (tuple(string uri,uint256 cost,uint256 stock,uint8 status,address creator,uint256 createdAt)[])"
 ];
@@ -53,7 +53,7 @@ async function connectWallet() {
 async function showTatBalance() {
   try {
     const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
-    const balance = await wineContract.pointBalanceOf(userAddress);
+    const balance = await wineContract.pointBalanceOf(userAddress, { blockTag: "latest" });
     document.getElementById("tatBalance").innerText = `我的葡萄：${ethers.utils.formatUnits(balance, 0)} 🍇`;
     document.getElementById("tatBalance").style.display = "inline";
   } catch (err) {
@@ -178,30 +178,77 @@ function animateSwitch(hideIds = [], showIds = []) {
 
 // ========== 文件: marketplace.js ==========
 
-async function buy(listingId) {
-  const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
+// ✅ 新版 buy 函数，兼容后端 Worker 和合约 redeem
+async function buy(tokenid) {
+  if (!signer || !userAddress) {
+    alert("⚠️ 请先连接钱包");
+    return;
+  }
+
   showWalletOverlay();
 
   try {
+    const res = await fetch(`http://127.0.0.1:8787/read?tokenId=${tokenid}`);
+    if (!res.ok) throw new Error("商品信息加载失败");
+    const item = await res.json();
 
-    console.log("📦 调用参数：", {
-      listingId,
-      userAddress,
-      quantity: 1
+    const deadline = Math.floor(Date.now() / 1000) + 600; // 10分钟过期
+
+    // 获取 nonce
+    const abi = ["function userNonce(address) view returns (uint256)"];
+    const readContract = new ethers.Contract(marketplaceAddress, abi, provider);
+    const nonce = await readContract.userNonce(userAddress, { blockTag: "latest" });
+    console.log("nonce: " + nonce);
+
+    item.uri = `http://127.0.0.1:8787/products/${item.tokenId}`;
+
+    // 构造哈希并签名
+    const hash = ethers.utils.solidityKeccak256(
+      ["address", "uint256", "string", "uint256", "uint256", "uint256", "uint256", "address"],
+      [userAddress, tokenid, item.uri, 1, item.price, deadline, nonce.toString(), marketplaceAddress]
+    );
+    const bytes = ethers.utils.arrayify(hash);
+    const signature = await signer.signMessage(bytes);
+
+    const payload = {
+      user: userAddress,
+      tokenId: tokenid,
+      uri: item.uri,
+      amount: 1,
+      cost: item.price,
+      deadline,
+      nonce: nonce.toString(),
+      signature
+    };
+
+    const response = await fetch("http://127.0.0.1:8787/buy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
 
-    const tx = await wineContract.redeem(
-      listingId
-    );
-    await tx.wait();
-    alert("✅ 购买成功！请在MetaMask收藏品中查看");
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      console.error("❌ 购买失败:", result);
+      alert("❌ 购买失败: " + (result.error || "未知错误"));
+      return;
+    }
+
+    alert("✅ 购买成功！交易哈希：" + result.txHash);
+    // ✅ 等待链上确认再查询积分
+    await provider.waitForTransaction(result.txHash);
+
+    // ✅ 强制读取最新余额
     await showTatBalance();
   } catch (err) {
+    console.error("❌ 购买出错：", err);
     alert("❌ 购买失败：" + err.message);
   } finally {
     hideWalletOverlay();
   }
 }
+
 
 function resolveImageUrl(url) {
   try {
@@ -284,7 +331,7 @@ async function showDetail(tokenId) {
       alert("❌ 该商品未上架或已下架");
       backToList();
       return;
-    }    
+    }
 
     document.getElementById("nftName").innerText = item.name || "未知名称";
     document.getElementById("nftDescription").innerText = item.description || "暂无描述";
@@ -303,7 +350,7 @@ async function showDetail(tokenId) {
       ${attrHtml}
     `;
 
-    document.getElementById("buyButton").setAttribute("data-listing-id", tokenId);
+    document.getElementById("buyButton").setAttribute("data-token-id", tokenId);
   } catch (err) {
     console.error("❌ NFT详情加载失败：", err.message || err);
     backToList();
@@ -316,9 +363,9 @@ function backToList() {
 
 }
 
-function onNFTClick(listingId) {
-  history.pushState({ listingId }, "", "#nft/" + listingId);
-  showDetail(listingId);
+function onNFTClick(tokenid) {
+  history.pushState({ tokenid }, "", "#nft/" + tokenid);
+  showDetail(tokenid);
 }
 
 function handleInitialLoad() {
@@ -341,18 +388,18 @@ function handlePopState() {
 
 async function buyNFT() {
   const btn = document.getElementById("buyButton");
-  const listingId = btn.getAttribute("data-listing-id");
+  const tokenid = btn.getAttribute("data-token-id");
   if (!signer) {
     alert("⚠️ 请先登陆");
     if (!signer) return;
   }
 
-  if (!listingId) {
+  if (!tokenid) {
     alert("⚠️ 无法读取购买信息！");
     return;
   }
 
-  await buy(parseInt(listingId));
+  await buy(parseInt(tokenid));
 }
 
 window.addEventListener("DOMContentLoaded", handleInitialLoad);
