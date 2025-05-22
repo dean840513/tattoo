@@ -1,0 +1,34 @@
+[
+    {
+        "productId": "001",
+        "name": "2021 赤霞珠珍藏",
+        "description": "橡木桶熟成10个月",
+        "image": "https://example.com/image.jpg",
+        "attributes": [
+            {
+                "trait_type": "年份",
+                "value": "2021"
+            },
+            {
+                "trait_type": "类型",
+                "value": "干红"
+            }
+        ]
+    },
+    {
+        "productId": "002",
+        "name": "2021 赤霞珠珍藏",
+        "description": "橡木桶熟成12个月",
+        "image": "https://example.com/image.jpg",
+        "attributes": [
+            {
+                "trait_type": "年份",
+                "value": "2021"
+            },
+            {
+                "trait_type": "类型",
+                "value": "干红"
+            }
+        ]
+    }
+]

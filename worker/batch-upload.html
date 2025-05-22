@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>批量上传商品 JSON</title>
+</head>
+<body>
+  <h2>批量上传商品列表（JSON 文件）</h2>
+
+  <input type="file" id="jsonFile" accept=".json" />
+  <button onclick="uploadJson()">开始上传</button>
+  <pre id="log">请上传一个包含数组的 JSON 文件</pre>
+
+  <script>
+    async function uploadJson() {
+      const log = document.getElementById("log");
+      const fileInput = document.getElementById("jsonFile");
+
+      if (!fileInput.files.length) {
+        log.textContent = "❌ 请选择一个 JSON 文件";
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const text = await file.text();
+
+      let list;
+      try {
+        list = JSON.parse(text);
+        if (!Array.isArray(list)) {
+          throw new Error("文件内容不是数组");
+        }
+      } catch (err) {
+        log.textContent = "❌ 解析 JSON 失败：" + err.message;
+        return;
+      }
+
+      log.textContent = `✅ 读取成功，准备上传 ${list.length} 条数据...\n`;
+
+      let success = 0, failed = 0;
+
+      for (const item of list) {
+        const productId = item.productId;
+        if (!productId) {
+          log.textContent += `❌ 缺少 productId，跳过\n`;
+          failed++;
+          continue;
+        }
+
+        try {
+          const res = await fetch(`http://127.0.0.1:8787/write?productId=${productId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item)
+          });
+
+          const text = await res.text();
+          if (res.ok) {
+            log.textContent += `✅ ${productId} 成功：${text}\n`;
+            success++;
+          } else {
+            log.textContent += `❌ ${productId} 失败：${text}\n`;
+            failed++;
+          }
+        } catch (err) {
+          log.textContent += `❌ ${productId} 异常：${err.message}\n`;
+          failed++;
+        }
+      }
+
+      log.textContent += `\n🎉 总计成功 ${success} 条，失败 ${failed} 条`;
+    }
+  </script>
+</body>
+</html>
