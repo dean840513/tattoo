@@ -50,20 +50,19 @@ async function connectWallet() {
   }
 }
 
-async function showTatBalance() {
-  try {
-    const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
-    const balance = await wineContract.pointBalanceOf(userAddress, { blockTag: "latest" });
-    document.getElementById("tatBalance").innerText = `我的葡萄：${ethers.utils.formatUnits(balance, 0)} 🍇`;
-    document.getElementById("tatBalance").style.display = "inline";
-  } catch (err) {
-    console.error("查询积分失败:", err);
-    alert("⚠️ 获取积分失败，请稍后重试");
-  }
-}
-
 async function connectWithMagic() {
   // 从本地恢复上次用过的邮箱
+
+
+  // Magic 初始化（记得替换为你自己的 public key）
+  const magic = new Magic("pk_live_30B25ED651B53D8B", {
+    network: {
+      rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
+      chainId: 1337                    // 主网为 137
+    }
+  });
+
+
   const cachedEmail = localStorage.getItem("magicUserEmail") || "";
   const input = prompt("📧 请输入你的邮箱登录", cachedEmail);
   if (!input) return;
@@ -106,18 +105,45 @@ async function connectWithMagic() {
   }
 }
 
+async function showTatBalance() {
+  try {
+    const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
+    const balance = await wineContract.pointBalanceOf(userAddress, { blockTag: "latest" });
+    document.getElementById("tatBalance").innerText = `我的葡萄：${ethers.utils.formatUnits(balance, 0)} 🍇`;
+    document.getElementById("tatBalance").style.display = "inline";
+    document.getElementById("tatBalance").style.cursor = "pointer";
+    document.getElementById("tatBalance").title = "点击刷新葡萄余额";
+    document.getElementById("tatBalance").onclick = showTatBalance;
+  } catch (err) {
+    console.error("查询积分失败:", err);
+    alert("⚠️ 获取积分失败，请稍后重试");
+  }
+}
 
 /**
  * 显示用户地址
  */
 function displayWalletAddress(address) {
+  const addrElem = document.getElementById("walletAddress");
+  addrElem.style.display = "inline";
+  addrElem.innerText = "地址：" + address;
+  addrElem.style.cursor = "pointer";
+  addrElem.title = "点击复制钱包地址";
+
+  addrElem.onclick = async function () {
+    try {
+      await navigator.clipboard.writeText(address);
+      alert("✅ 已复制钱包地址到剪贴板");
+    } catch (err) {
+      console.error("❌ 复制失败:", err);
+      alert("❌ 复制失败，请手动复制");
+    }
+  };
+
   document.getElementById("connectBtnMagic").style.display = "none";
   document.getElementById("connectBtn").style.display = "none";
-  document.getElementById("walletAddress").style.display = "inline";
-  document.getElementById("walletAddress").innerText =
-    // "地址：" + address.slice(0, 6) + "..." + address.slice(-4);
-    "地址：" + address;
 }
+
 
 // ========== 文件: ui.js ==========
 
@@ -185,6 +211,13 @@ async function buy(tokenid) {
     return;
   }
 
+  const isMagic = provider.provider && provider.provider.isMagic;
+
+  if (isMagic) {
+    const confirmed = window.confirm("⚠️ 请确认：本次购买将直接提交区块链交易。\n\n请仔细核对商品信息和价格，交易一旦发起将无法撤销。\n\n是否继续？");
+    if (!confirmed) return;
+  }
+
   showWalletOverlay();
 
   try {
@@ -241,6 +274,9 @@ async function buy(tokenid) {
 
     // ✅ 强制读取最新余额
     await showTatBalance();
+
+    fetch(`http://127.0.0.1:8787/read?tokenId=${tokenid}`, { cache: "reload" });
+    await showDetail(tokenid); // 再次调用详情页渲染逻辑
   } catch (err) {
     console.error("❌ 购买出错：", err);
     alert("❌ 购买失败：" + err.message);

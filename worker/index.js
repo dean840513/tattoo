@@ -1,18 +1,18 @@
 import { ethers, verifyMessage } from 'ethers';
 
-// 环境变量设置（推荐使用 Secrets 机制）=================================================================
+//===============================  环境变量设置（推荐使用 Secrets 机制）=================================================================
 const RPC_URL = 'http://127.0.0.1:8545'; // 或其他网络
 const CONTRACT_ADDRESS = '0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3';
 const PRIVATE_KEY = '0x84b7bc480b8aa88404aa7f2b1c6e18b00313c3c453a8d46a4de32bd14dc564af'; // 注意安全性，部署时使用 wrangler secret
 const ABI = [ // 精简 ABI 只保留 redeem 函数
   "function redeem(address user, uint256 tokenId, string uri, uint256 amount, uint256 cost, uint256 deadline, uint256 nonce, bytes signature)"
 ];
-// event相关变量=============================================================================================
+//===============================  event相关变量=============================================================================================
 const TRANSFER_SINGLE_TOPIC = '0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62'; // ERC1155 TransferSingle
 const TRANSFER_BATCH_TOPIC = '0x4a39dc06d4c0dbc64b70b2970c0a8d4e67c4baf9c1f6c3c4917d0be1b2b3c0e2';
 const DEPLOY_BLOCK = 0; // 修改为你的合约部署区块高度
 
-// 主函数 =====================================================================================
+//===============================  主函数 =====================================================================================
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -38,7 +38,7 @@ export default {
 
     if (method === "OPTIONS") return withCors(null, 204);
 
-    // ✅ 写入商品（POST /write）=======================================================================
+    // =============================== ✅ 写入商品（POST /write）=======================================================================
     if (url.pathname === "/write" && method === "POST") {
       let data;
       try {
@@ -60,7 +60,7 @@ export default {
         return withCors(`❌ 商品名称已存在：${data.name}`, 409, "text/plain");
       }
 
-      // 插入 ==============================================================================
+      // ======================================== 插入 ==============================================================================
       const insert = await env.DB.prepare(`
         INSERT INTO products (name, description, image, price, stock, attributes)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -76,7 +76,7 @@ export default {
       return withCors(`✅ 新增商品成功，tokenId = ${insert.meta.last_row_id}`, 200, "text/plain");
     }
 
-    // ✅ 读取商品（GET /read?tokenId=xxx） ==============================================================================
+    // ============================ ✅ 读取商品（GET /read?tokenId=xxx） ==============================================================================
     if (url.pathname === "/read" && method === "GET") {
       const tokenId = url.searchParams.get("tokenId");
       if (!tokenId) return withCors("❌ 缺少 tokenId 参数", 400, "text/plain");
@@ -90,10 +90,11 @@ export default {
       }
 
       row.attributes = JSON.parse(row.attributes || "[]");
+      console.log("读取" + tokenId);
       return withCors(JSON.stringify(row, null, 2), 200, "application/json", 30);
     }
 
-    // ✅ 更新商品（POST /update?tokenId=xxx）==============================================================================
+    // ===============================✅ 更新商品（POST /update?tokenId=xxx）==============================================================================
     if (url.pathname === "/update" && method === "POST") {
       const tokenId = url.searchParams.get("tokenId");
       if (!tokenId) return withCors("❌ 缺少 tokenId 参数", 400, "text/plain");
@@ -166,7 +167,7 @@ export default {
       return withCors(`✅ 已更新 tokenId=${tokenId}`);
     }
 
-    // ✅ 商品列表（GET /list） ==============================================================================
+    // =========================✅ 商品列表（GET /list） ==============================================================================
     if (url.pathname === "/list" && method === "GET") {
       const rows = await env.DB
         .prepare("SELECT * FROM products WHERE status = 1 ORDER BY createdAt DESC")
@@ -180,6 +181,8 @@ export default {
       return withCors(JSON.stringify(result, null, 2), 200, "application/json", 300);
     }
 
+
+    // =========================✅ 购买逻辑（BUY /buy） ==============================================================================
     if (url.pathname === "/buy" && method === "POST") {
       try {
         const body = await request.json();
@@ -187,20 +190,45 @@ export default {
           user,         // 用户地址
           tokenId,      // 商品 ID
           uri,          // NFT URI
-          amount,       // 数量，通常是 1
+          amount,       // 数量
           cost,         // 所需积分
           deadline,     // 签名截止时间
-          nonce,        // 用户 nonce（从合约读取）
+          nonce,        // 用户 nonce
           signature     // 用户签名
         } = body;
 
-        // 初始化 provider 和 signer（relayer）
+        // ========== 安全校验商品 ==========
+        const row = await env.DB.prepare("SELECT * FROM products WHERE tokenId = ?")
+          .bind(tokenId)
+          .first();
+
+        if (!row) {
+          return withCors(JSON.stringify({ success: false, error: "商品不存在" }), 404);
+        }
+
+        if (row.status !== 1) {
+          return withCors(JSON.stringify({ success: false, error: "商品未上架或已下架" }), 400);
+        }
+
+        if (parseInt(row.stock) < amount) {
+          return withCors(JSON.stringify({ success: false, error: "库存不足" }), 400);
+        }
+
+        if (parseInt(row.price) !== parseInt(cost)) {
+          return withCors(JSON.stringify({ success: false, error: "价格信息不匹配" }), 400);
+        }
+
+        const expectedUri = `http://127.0.0.1:8787/products/${tokenId}`;
+        if (uri !== expectedUri) {
+          return withCors(JSON.stringify({ success: false, error: "URI 不一致" }), 400);
+        }
+
+        // ========== 发起合约交易 ==========
         const provider = new ethers.JsonRpcProvider(RPC_URL);
         const signer = new ethers.Wallet(PRIVATE_KEY, provider);
 
         const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
-        // 发起交易
         const tx = await contract.redeem(
           user,
           tokenId,
@@ -213,6 +241,13 @@ export default {
         );
 
         const receipt = await tx.wait();
+
+        // ========== 链上成功后更新库存 ==========
+        const newStock = parseInt(row.stock) - amount;
+        await env.DB.prepare("UPDATE products SET stock = ? WHERE tokenId = ?")
+          .bind(newStock, tokenId)
+          .run();
+
         return withCors(JSON.stringify({ success: true, txHash: receipt.hash }));
 
       } catch (err) {
@@ -225,7 +260,8 @@ export default {
       }
     }
 
-    // ✅ 查询 TransferSingle 和 TransferBatch 日志（GET /logs）======================================================
+
+    // ==============================✅ 查询 TransferSingle 和 TransferBatch 日志（GET /logs）======================================================
     if (url.pathname === "/logs" && method === "GET") {
       try {
         // 读取最新区块高度
@@ -269,6 +305,7 @@ export default {
 
         const events = logs.map(log => {
           const eventType = log.topics[0] === TRANSFER_SINGLE_TOPIC ? "single" : "batch";
+          const blockNumber = parseInt(log.blockNumber, 16);
           const operator = "0x" + log.topics[1].slice(26);
           const from = "0x" + log.topics[2].slice(26);
           const to = "0x" + log.topics[3].slice(26);
@@ -277,7 +314,7 @@ export default {
             const data = log.data.slice(2);
             const tokenId = parseInt(data.slice(0, 64), 16);
             const amount = parseInt(data.slice(64, 128), 16);
-            return { eventType, operator, from, to, tokenId, amount };
+            return { eventType, blockNumber, operator, from, to, tokenId, amount };
           } else {
             const data = log.data.slice(2);
             const offsetIds = parseInt(data.slice(0, 64), 16);
@@ -290,7 +327,8 @@ export default {
               amounts.push(parseInt(data.slice(128 + (count * 64) + i * 64, 128 + (count * 64) + (i + 1) * 64), 16));
             }
 
-            return { eventType, operator, from, to, ids, amounts };
+            return { eventType, blockNumber, operator, from, to, ids, amounts };
+
           }
         });
 
