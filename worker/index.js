@@ -30,7 +30,7 @@ export default {
           "Access-Control-Allow-Headers": "Content-Type",
           "Access-Control-Max-Age": "86400",
           "Cache-Control": `public, max-age=${maxAge}`,
-          "Content-Type": contentType
+          "Content-Type": `${contentType}; charset=utf-8`
         }
       });
     }
@@ -216,7 +216,12 @@ export default {
         return withCors(JSON.stringify({ success: true, txHash: receipt.hash }));
 
       } catch (err) {
-        return withCors(JSON.stringify({ success: false, error: err.message }), 500);
+        console.error("❌ Worker error:", err);
+        return withCors(JSON.stringify({
+          success: false,
+          error: err?.reason || err?.message || "unknown error",
+          raw: err
+        }), 500);
       }
     }
 
@@ -298,7 +303,38 @@ export default {
       }
     }
 
-    // 报错提示========================================================================
+    // ✅ JSON 元数据接口：/json/{tokenId}.json =====================================================================
+    if (url.pathname.startsWith("/products/") && method === "GET") {
+      const match = url.pathname.match(/^\/products\/(\d+)$/);
+      if (!match) {
+        return withCors("❌ 请求路径格式错误", 400, "text/plain");
+      }
+
+      const tokenId = parseInt(match[1], 10);
+      const row = await env.DB.prepare("SELECT * FROM products WHERE tokenId = ?")
+        .bind(tokenId)
+        .first();
+
+      if (!row) {
+        return withCors(`❌ 未找到 tokenId=${tokenId}`, 404, "text/plain");
+      }
+
+      const attributes = JSON.parse(row.attributes || "[]");
+
+      const metadata = {
+        name: row.name,
+        description: row.description,
+        image: row.image,
+        attributes,
+        tokenId,
+        external_url: `http://localhost:8888/#nft/${tokenId}`
+      };
+
+      return withCors(JSON.stringify(metadata, null, 2), 200, "application/json");
+    }
+
+
+    // 默认提示========================================================================
     return withCors("请访问 /write、/read、/update、/list", 200, "text/plain");
   }
 };
