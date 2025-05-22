@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>🍷 NFT 授权签名工具</title>
+</head>
+
+<body>
+	<h2>🍷 NFT 授权签名工具（ethers v5）</h2>
+
+	<label>用户地址：</label><br />
+	<input id="user" style="width: 400px;" value="0x321C4FF77f9069B520833fE938061468C9205D5E"><br /><br />
+
+	<label>Token ID：</label><br />
+	<input id="tokenId" style="width: 100px;" value="0"><br /><br />
+
+	<label>数量（amount）：</label><br />
+	<input id="amount" style="width: 100px;" value="1"><br /><br />
+
+	<label>商品 URI：</label><br />
+	<input id="uri" style="width: 400px;" value="http://127.0.0.1:8888/json/0.json"><br /><br />
+
+	<label>价格（积分数量）：</label><br />
+	<input id="cost" style="width: 100px;" value="10"><br /><br />
+
+	<label>截止时间（Unix 时间戳）：</label><br />
+	<input id="deadline" style="width: 200px;"><br /><br />
+
+	<label>Nonce：</label><br />
+	<input id="nonce" style="width: 100px;" value="0"><br /><br />
+
+	<label>合约地址（WinePlatform1155）：</label><br />
+	<input id="wallet" style="width: 400px;" value="0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3"><br /><br />
+
+	<button onclick="signOnly()">✍️ 只生成签名</button>
+	<button onclick="signAndSend()">📤 签名并发送</button>
+
+	<h3>签名结果：</h3>
+	<textarea id="output" style="width: 100%; height: 100px;"></textarea>
+
+	<!-- 使用 ethers v5 CDN -->
+	<script src="ethers.umd.min.js"></script>
+	<script>
+		let latestSignature = "";
+
+		async function getCommonFields(send) {
+
+			const provider = new ethers.providers.Web3Provider(window.ethereum);
+			await provider.send("eth_requestAccounts", []);
+			const signer = provider.getSigner();
+
+			const user = document.getElementById("user").value;
+			const tokenId = parseInt(document.getElementById("tokenId").value);
+			const amount = parseInt(document.getElementById("amount").value);
+			const uri = document.getElementById("uri").value;
+			const cost = parseInt(document.getElementById("cost").value);
+			const deadline = parseInt(document.getElementById("deadline").value);
+			const wallet = document.getElementById("wallet").value;
+			const nonce = document.getElementById("nonce").value;
+
+
+			if (send === true) {
+				const abi = [
+					"function userNonce(address) view returns (uint256)",
+					"function pointBalanceOf(address) view returns (uint256)"
+				];
+				const contract = new ethers.Contract(wallet, abi, provider);
+
+				const currentNonce = await contract.userNonce(user);
+				document.getElementById("nonce").value = currentNonce;
+				const nonce = parseInt(currentNonce.toString());
+
+				const balance = await contract.pointBalanceOf(user);
+				if (balance.lt(ethers.BigNumber.from(cost))) {
+					alert(`❌ 当前积分为 ${balance.toString()}，不足以兑换（需要 ${cost}）`);
+					return null;
+				}
+
+				if (!user || !uri || isNaN(tokenId) || isNaN(amount) || isNaN(cost) || isNaN(deadline) || isNaN(nonce) || !wallet) {
+					alert("❌ 请填写所有字段");
+					return null;
+				}
+			}
+
+			return { signer, user, tokenId, amount, uri, cost, deadline, nonce, wallet };
+		}
+
+		async function signOnly() {
+			const fields = await getCommonFields(false);
+			if (!fields) return;
+
+			const hash = ethers.utils.solidityKeccak256(
+				["address", "uint256", "string", "uint256", "uint256", "uint256", "uint256", "address"],
+				[fields.user, fields.tokenId, fields.uri, fields.amount, fields.cost, fields.deadline, fields.nonce, fields.wallet]
+			);
+
+			const signature = await fields.signer.signMessage(ethers.utils.arrayify(hash));
+			latestSignature = signature;
+			document.getElementById("output").value = signature;
+		}
+
+		async function signAndSend() {
+			const fields = await getCommonFields(false);
+			if (!fields) return;
+
+			const hash = ethers.utils.solidityKeccak256(
+				["address", "uint256", "string", "uint256", "uint256", "uint256", "uint256", "address"],
+				[fields.user, fields.tokenId, fields.uri, fields.amount, fields.cost, fields.deadline, fields.nonce, fields.wallet]
+			);
+
+			const signature = await fields.signer.signMessage(ethers.utils.arrayify(hash));
+			latestSignature = signature;
+			document.getElementById("output").value = signature;
+
+			const payload = {
+				user: fields.user,
+				tokenId: fields.tokenId,
+				uri: fields.uri,
+				amount: fields.amount,
+				cost: fields.cost,
+				deadline: fields.deadline,
+				nonce: fields.nonce,
+				signature
+			};
+
+			const response = await fetch("http://127.0.0.1:8787/buy", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify(payload)
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				alert("❌ 合约调用失败: " + result.message);
+				console.error(result);
+			} else {
+				alert("✅ NFT 铸造成功！交易哈希: " + result.txHash);
+				console.log(result);
+			}
+		}
+
+		window.onload = () => {
+			const now = Math.floor(Date.now() / 1000);
+			document.getElementById("deadline").value = now + 3600;
+		};
+	</script>
+</body>
+
+</html>

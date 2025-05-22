@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PayPal 测试支付页面</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    select, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin-top: 1rem;
+      width: 100%;
+    }
+    #paypal-button-container {
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>选择商品进行测试支付</h2>
+  <label for="product">商品列表：</label>
+  <select id="product">
+    <option value="49.99">红酒 🍷 - $49.99</option>
+    <option value="19.99">葡萄 🍇 - $19.99</option>
+    <option value="9.99">开瓶器 🛠️ - $9.99</option>
+  </select>
+
+  <div id="paypal-button-container"></div>
+
+  <!-- 请替换为你的 Sandbox Client ID -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AXPx0x_9Nj4Nv0n-5u78lG0LU2mw32nU4u74j1iRdMTckF48neEdqWCrLMe-Vrd51Lj-jBpw-ltBQPRE&currency=USD"></script>
+
+  <script>
+    function getSelectedPrice() {
+      const select = document.getElementById('product');
+      return select.value;
+    }
+
+    function getSelectedDescription() {
+      const select = document.getElementById('product');
+      return select.options[select.selectedIndex].text;
+    }
+
+    paypal.Buttons({
+      createOrder: function (data, actions) {
+        const price = getSelectedPrice();
+        const description = getSelectedDescription();
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: price
+            },
+            description: description
+          }]
+        });
+      },
+      onApprove: function (data, actions) {
+        return actions.order.capture().then(function (details) {
+          alert("✅ 支付成功，买家：" + details.payer.name.given_name + "\n商品：" + getSelectedDescription());
+        });
+      }
+    }).render('#paypal-button-container');
+  </script>
+
+</body>
+</html>

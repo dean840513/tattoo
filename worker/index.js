@@ -1,0 +1,304 @@
+import { ethers, verifyMessage } from 'ethers';
+
+// 环境变量设置（推荐使用 Secrets 机制）=================================================================
+const RPC_URL = 'http://127.0.0.1:8545'; // 或其他网络
+const CONTRACT_ADDRESS = '0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3';
+const PRIVATE_KEY = '0x84b7bc480b8aa88404aa7f2b1c6e18b00313c3c453a8d46a4de32bd14dc564af'; // 注意安全性，部署时使用 wrangler secret
+const ABI = [ // 精简 ABI 只保留 redeem 函数
+  "function redeem(address user, uint256 tokenId, string uri, uint256 amount, uint256 cost, uint256 deadline, uint256 nonce, bytes signature)"
+];
+// event相关变量=============================================================================================
+const TRANSFER_SINGLE_TOPIC = '0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62'; // ERC1155 TransferSingle
+const TRANSFER_BATCH_TOPIC = '0x4a39dc06d4c0dbc64b70b2970c0a8d4e67c4baf9c1f6c3c4917d0be1b2b3c0e2';
+const DEPLOY_BLOCK = 0; // 修改为你的合约部署区块高度
+
+// 主函数 =====================================================================================
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const method = request.method;
+
+    const isDev = env.ENVIRONMENT === "dev";
+    const allowOrigin = isDev ? "*" : "https://your-production-domain.com";
+
+    function withCors(body, status = 200, contentType = "application/json", maxAge = 0) {
+      return new Response(body, {
+        status,
+        headers: {
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Max-Age": "86400",
+          "Cache-Control": `public, max-age=${maxAge}`,
+          "Content-Type": contentType
+        }
+      });
+    }
+
+
+    if (method === "OPTIONS") return withCors(null, 204);
+
+    // ✅ 写入商品（POST /write）=======================================================================
+    if (url.pathname === "/write" && method === "POST") {
+      let data;
+      try {
+        data = await request.json();
+      } catch {
+        return withCors("❌ 无效的 JSON 数据", 400, "text/plain");
+      }
+
+      if (!data.name) {
+        return withCors("❌ 缺少 name 字段", 400, "text/plain");
+      }
+
+      // 检查是否已有相同 name
+      const nameExists = await env.DB.prepare("SELECT 1 FROM products WHERE name = ?")
+        .bind(data.name)
+        .first();
+
+      if (nameExists) {
+        return withCors(`❌ 商品名称已存在：${data.name}`, 409, "text/plain");
+      }
+
+      // 插入 ==============================================================================
+      const insert = await env.DB.prepare(`
+        INSERT INTO products (name, description, image, price, stock, attributes)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).bind(
+        data.name,
+        data.description || "",
+        data.image || "",
+        data.price || 0,
+        data.stock || 0,
+        JSON.stringify(data.attributes || [])
+      ).run();
+
+      return withCors(`✅ 新增商品成功，tokenId = ${insert.meta.last_row_id}`, 200, "text/plain");
+    }
+
+    // ✅ 读取商品（GET /read?tokenId=xxx） ==============================================================================
+    if (url.pathname === "/read" && method === "GET") {
+      const tokenId = url.searchParams.get("tokenId");
+      if (!tokenId) return withCors("❌ 缺少 tokenId 参数", 400, "text/plain");
+
+      const row = await env.DB.prepare("SELECT * FROM products WHERE tokenId = ?")
+        .bind(tokenId)
+        .first();
+
+      if (!row) {
+        return withCors(`❌ 未找到 tokenId=${tokenId}`, 404, "text/plain");
+      }
+
+      row.attributes = JSON.parse(row.attributes || "[]");
+      return withCors(JSON.stringify(row, null, 2), 200, "application/json", 30);
+    }
+
+    // ✅ 更新商品（POST /update?tokenId=xxx）==============================================================================
+    if (url.pathname === "/update" && method === "POST") {
+      const tokenId = url.searchParams.get("tokenId");
+      if (!tokenId) return withCors("❌ 缺少 tokenId 参数", 400, "text/plain");
+
+      let data;
+      try {
+        data = await request.json();
+      } catch {
+        return withCors("❌ 无效 JSON 数据", 400, "text/plain");
+      }
+
+      // 先查是否存在
+      const existing = await env.DB.prepare("SELECT * FROM products WHERE tokenId = ?")
+        .bind(tokenId)
+        .first();
+
+      if (!existing) {
+        return withCors(`❌ tokenId=${tokenId} 不存在`, 404, "text/plain");
+      }
+
+      // 判断 name 是否重复（换了重复名）
+      if (data.name && data.name !== existing.name) {
+        const nameConflict = await env.DB.prepare("SELECT 1 FROM products WHERE name = ?")
+          .bind(data.name)
+          .first();
+
+        if (nameConflict) {
+          return withCors(`❌ 商品名称已存在：${data.name}`, 409, "text/plain");
+        }
+      }
+
+      // 构建动态 UPDATE 语句
+      const fields = [];
+      const values = [];
+
+      if (data.name) {
+        fields.push("name = ?");
+        values.push(data.name);
+      }
+      if (data.description !== undefined) {
+        fields.push("description = ?");
+        values.push(data.description);
+      }
+      if (data.image !== undefined) {
+        fields.push("image = ?");
+        values.push(data.image);
+      }
+      if (data.price !== undefined) {
+        fields.push("price = ?");
+        values.push(data.price);
+      }
+      if (data.stock !== undefined) {
+        fields.push("stock = ?");
+        values.push(data.stock);
+      }
+      if (data.attributes !== undefined) {
+        fields.push("attributes = ?");
+        values.push(JSON.stringify(data.attributes));
+      }
+
+      if (fields.length === 0) {
+        return withCors("❌ 没有需要更新的字段", 400, "text/plain");
+      }
+
+      values.push(tokenId); // tokenId 为 WHERE 参数
+
+      const sql = `UPDATE products SET ${fields.join(", ")} WHERE tokenId = ?`;
+      await env.DB.prepare(sql).bind(...values).run();
+
+      return withCors(`✅ 已更新 tokenId=${tokenId}`);
+    }
+
+    // ✅ 商品列表（GET /list） ==============================================================================
+    if (url.pathname === "/list" && method === "GET") {
+      const rows = await env.DB
+        .prepare("SELECT * FROM products WHERE status = 1 ORDER BY createdAt DESC")
+        .all();
+
+      const result = rows.results.map(r => ({
+        ...r,
+        attributes: JSON.parse(r.attributes || "[]")
+      }));
+
+      return withCors(JSON.stringify(result, null, 2), 200, "application/json", 300);
+    }
+
+    if (url.pathname === "/buy" && method === "POST") {
+      try {
+        const body = await request.json();
+        const {
+          user,         // 用户地址
+          tokenId,      // 商品 ID
+          uri,          // NFT URI
+          amount,       // 数量，通常是 1
+          cost,         // 所需积分
+          deadline,     // 签名截止时间
+          nonce,        // 用户 nonce（从合约读取）
+          signature     // 用户签名
+        } = body;
+
+        // 初始化 provider 和 signer（relayer）
+        const provider = new ethers.JsonRpcProvider(RPC_URL);
+        const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        // 发起交易
+        const tx = await contract.redeem(
+          user,
+          tokenId,
+          uri,
+          amount,
+          cost,
+          deadline,
+          nonce,
+          signature
+        );
+
+        const receipt = await tx.wait();
+        return withCors(JSON.stringify({ success: true, txHash: receipt.hash }));
+
+      } catch (err) {
+        return withCors(JSON.stringify({ success: false, error: err.message }), 500);
+      }
+    }
+
+    // ✅ 查询 TransferSingle 和 TransferBatch 日志（GET /logs）======================================================
+    if (url.pathname === "/logs" && method === "GET") {
+      try {
+        // 读取最新区块高度
+        const latestRes = await fetch(RPC_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] })
+        });
+        const latestBlockHex = (await latestRes.json()).result;
+        const latestBlock = parseInt(latestBlockHex, 16);
+
+        // 获取上次处理区块高度（首次使用 DEPLOY_BLOCK）
+        // const lastChecked = await env.NFT_LOG_KV.get("lastCheckedBlock");
+        const lastChecked = 0;
+        const fromBlock = lastChecked ? parseInt(lastChecked) + 1 : DEPLOY_BLOCK;
+
+
+        if (fromBlock > latestBlock) {
+          return withCors(JSON.stringify({ success: true, message: "No new blocks." }));
+        }
+
+        // 查询事件日志
+        const logsRes = await fetch(RPC_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 2,
+            method: "eth_getLogs",
+            params: [{
+              fromBlock: "0x" + fromBlock.toString(16),
+              toBlock: "0x" + latestBlock.toString(16),
+              address: CONTRACT_ADDRESS,
+              topics: [[TRANSFER_SINGLE_TOPIC, TRANSFER_BATCH_TOPIC]]
+            }]
+          })
+        });
+
+        const logData = await logsRes.json();
+        const logs = logData.result;
+
+        const events = logs.map(log => {
+          const eventType = log.topics[0] === TRANSFER_SINGLE_TOPIC ? "single" : "batch";
+          const operator = "0x" + log.topics[1].slice(26);
+          const from = "0x" + log.topics[2].slice(26);
+          const to = "0x" + log.topics[3].slice(26);
+
+          if (eventType === "single") {
+            const data = log.data.slice(2);
+            const tokenId = parseInt(data.slice(0, 64), 16);
+            const amount = parseInt(data.slice(64, 128), 16);
+            return { eventType, operator, from, to, tokenId, amount };
+          } else {
+            const data = log.data.slice(2);
+            const offsetIds = parseInt(data.slice(0, 64), 16);
+            const offsetAmounts = parseInt(data.slice(64, 128), 16);
+            const count = (data.length - 128) / 128 / 2;
+
+            const ids = [], amounts = [];
+            for (let i = 0; i < count; i++) {
+              ids.push(parseInt(data.slice(128 + i * 64, 128 + (i + 1) * 64), 16));
+              amounts.push(parseInt(data.slice(128 + (count * 64) + i * 64, 128 + (count * 64) + (i + 1) * 64), 16));
+            }
+
+            return { eventType, operator, from, to, ids, amounts };
+          }
+        });
+
+        // 更新 KV 中的 lastCheckedBlock
+        // await env.NFT_LOG_KV.put("lastCheckedBlock", latestBlock.toString());
+
+        return withCors(JSON.stringify({ success: true, logs: events }, null, 2));
+      } catch (err) {
+        return withCors(JSON.stringify({ success: false, error: err.message }), 500);
+      }
+    }
+
+    // 报错提示========================================================================
+    return withCors("请访问 /write、/read、/update、/list", 200, "text/plain");
+  }
+};

@@ -8,12 +8,12 @@ const MARKETPLACE_ABI = [
 ];
 
 // Magic 初始化（记得替换为你自己的 public key）
-const magic = new Magic("pk_live_30B25ED651B53D8B", {
-  network: {
-    rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
-    chainId: 1337                    // 主网为 137
-  }
-});
+// const magic = new Magic("pk_live_30B25ED651B53D8B", {
+//   network: {
+//     rpcUrl: "http://127.0.0.1:8545", // 或主网 https://polygon-rpc.com
+//     chainId: 1337                    // 主网为 137
+//   }
+// });
 
 let provider, signer, userAddress;
 
@@ -224,49 +224,6 @@ function resolveImageUrl(url) {
   }
 }
 
-// 缓存商品列表
-async function fetchListingsWithCache() {
-  const CACHE_KEY = "cachedListings";
-  const TIMESTAMP_KEY = "cachedListingsTimestamp";
-  const CACHE_DURATION = 30 * 1000; // 30秒
-
-  const now = Date.now();
-  const last = parseInt(localStorage.getItem(TIMESTAMP_KEY) || "0");
-
-  if (now - last < CACHE_DURATION) {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        console.log("📦 从 localStorage 加载商品列表");
-        return JSON.parse(raw);
-      }
-    } catch (e) {
-      console.warn("⚠️ 缓存解析失败，将重新请求区块链");
-    }
-  }
-
-  console.log("🔄 正在从区块链重新加载商品...");
-  const publicProvider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
-  const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, publicProvider);
-  const listings = await wineContract.getAllList();
-
-  // 转成 JSON 可序列化格式（结构体数组中可能有 BigNumber）
-  const simplified = listings.map(item => ({
-    uri: item.uri,
-    cost: item.cost.toString(),
-    stock: item.stock.toString(),
-    status: item.status,
-    creator: item.creator,
-    createdAt: item.createdAt.toString()
-  }));
-
-  localStorage.setItem(CACHE_KEY, JSON.stringify(simplified));
-  localStorage.setItem(TIMESTAMP_KEY, now.toString());
-
-  return simplified;
-}
-
-// 显示列表
 async function renderNFTs() {
   const loading = document.getElementById("nftLoading");
   const container = document.getElementById("nftGrid");
@@ -275,88 +232,83 @@ async function renderNFTs() {
   container.innerHTML = "";
 
   try {
-    const listings = await fetchListingsWithCache();
+    const res = await fetch("http://127.0.0.1:8787/list");
+    if (!res.ok) throw new Error("请求失败：" + res.statusText);
+    const listings = await res.json();
+
+    console.log("📦 从 D1 加载商品列表，共", listings.length, "项");
 
     for (let i = 0; i < listings.length; i++) {
       const item = listings[i];
-      if (parseInt(item.status) !== 1) continue; // 只显示 status=1 的上架商品
 
-      try {
-        const metadataUrl = resolveImageUrl(item.uri);
-        const res = await fetch(metadataUrl);
-        const metadata = await res.json();
+      if (item.status !== 1) continue; // ✅ 只显示 status == 1 的商品
 
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <img src="${resolveImageUrl(metadata.image)}" alt="${metadata.name}" />
-          <h3>${metadata.name}</h3>
-          <p>${metadata.description}</p>
-          <p>价格：${ethers.utils.formatUnits(item.cost, 0)} 🍇</p>
-          <p>库存：${item.stock}</p>
-          <button class="primary-button">🛒 购买</button>
-        `;
+      const card = document.createElement("div");
+      card.className = "card";
 
-        card.onclick = function () {
-          onNFTClick(i); // i 对应 listingId（数组索引）
-        };
+      card.innerHTML = `
+        <img src="${resolveImageUrl(item.image)}" alt="${item.name}" />
+        <h3>${item.name}</h3>
+        <p>${item.description || "暂无描述"}</p>
+        <p>价格：${item.price} 🍇</p>
+        <p>库存：${item.stock}</p>
+        <button class="primary-button">🛒 购买</button>
+      `;
 
-        container.appendChild(card);
-      } catch (err) {
-        console.warn(`❌ 商品 [${i}] 元数据加载失败:`, err.message || err);
-      }
+      card.onclick = function () {
+        onNFTClick(item.tokenId); // ✅ 改为 tokenId 作为唯一标识
+      };
+
+      container.appendChild(card);
     }
   } catch (err) {
-    console.error("❌ 从合约读取商品失败:", err.message || err);
-    alert("⚠️ 商品加载失败，请稍后重试");
+    console.error("❌ 商品加载失败:", err.message || err);
+    alert("⚠️ 无法加载商品数据，请稍后重试");
   } finally {
     loading.style.display = "none";
   }
 }
 
-
 // ========== 文件: detail.js ==========
 
-async function showDetail(listingId) {
+async function showDetail(tokenId) {
   animateSwitch(["nftListView", "title"], ["nftOverlay"]);
 
   try {
-    const listings = await fetchListingsWithCache();
-    const item = listings[listingId];
-    if (!item) throw new Error(`未找到 listingId=${listingId} 的商品`);
+    const res = await fetch(`http://127.0.0.1:8787/read?tokenId=${tokenId}`);
+    if (!res.ok) throw new Error(`读取 tokenId=${tokenId} 失败`);
 
-    const metadataUrl = resolveImageUrl(item.uri);
-    const res = await fetch(metadataUrl);
-    const metadata = await res.json();
+    const item = await res.json();
 
-    const price = ethers.utils.formatUnits(item.cost.toString(), 0);
-    const created = new Date(parseInt(item.createdAt.toString()) * 1000).toLocaleString();
+    if (item.status !== 1) {
+      alert("❌ 该商品未上架或已下架");
+      backToList();
+      return;
+    }    
 
-    document.getElementById("nftName").innerText = metadata.name || "未知名称";
-    document.getElementById("nftDescription").innerText = metadata.description || "暂无描述";
-    document.getElementById("nftImage").src = resolveImageUrl(metadata.image);
-    document.getElementById("nftPrice").innerText = `价格：${price} 🍇`;
+    document.getElementById("nftName").innerText = item.name || "未知名称";
+    document.getElementById("nftDescription").innerText = item.description || "暂无描述";
+    document.getElementById("nftImage").src = resolveImageUrl(item.image);
+    document.getElementById("nftPrice").innerText = `价格：${item.price} 🍇`;
 
-    // 🍇 构建 attributes 展示（如 品种: 赤霞珠）
-    const attrHtml = (metadata.attributes || []).map(attr =>
+    const created = new Date(item.createdAt * 1000).toLocaleString();
+
+    const attrHtml = (item.attributes || []).map(attr =>
       `<p>${attr.trait_type || attr.key}: ${attr.value}</p>`
     ).join("");
 
-    // 组合显示详情区块
     document.getElementById("nftAttributes").innerHTML = `
-      <p>库存：${item.stock.toString()}</p>
+      <p>库存：${item.stock}</p>
       <p>上架时间：${created}</p>
       ${attrHtml}
     `;
 
-    document.getElementById("buyButton").setAttribute("data-listing-id", listingId);
+    document.getElementById("buyButton").setAttribute("data-listing-id", tokenId);
   } catch (err) {
     console.error("❌ NFT详情加载失败：", err.message || err);
     backToList();
   }
 }
-
-
 
 function backToList() {
   history.pushState({}, "", "#");

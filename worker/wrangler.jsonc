@@ -1,0 +1,32 @@
+{
+  "name": "my-worker-project",
+  "main": "src/index.js",
+  "compatibility_date": "2025-05-20",
+  "observability": {
+    "enabled": true
+  },
+
+  // ✅ KV 命名空间绑定配置
+//   "kv_namespaces": [
+//     {
+//       "binding": "MY_KV",
+//       "id": "fake-id-for-dev",      // 必填，但在本地开发可为占位值
+//       "preview_id": "test-kv"
+//     }
+//   ],
+
+  // ✅ 添加 D1 数据库绑定（正式用 database_id）
+  "d1_databases": [
+    {
+      "binding": "DB",                       // 你在代码中用 env.DB 访问它
+      "database_name": "wine-products",      // 你用 wrangler 创建的 D1 名称
+      "database_id": "3e069743-e607-4d5d-8701-542038ecbc17"   // 👈 替换成实际的 Cloudflare D1 ID
+    }
+  ],
+
+  "vars": {
+    "ENVIRONMENT": "dev"
+  }
+
+  // 你可以在这里继续添加 placement、assets、services 等配置
+}
