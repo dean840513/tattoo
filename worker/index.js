@@ -3,7 +3,7 @@ import { ethers, verifyMessage } from 'ethers';
 //===============================  环境变量设置（推荐使用 Secrets 机制）=================================================================
 const RPC_URL = 'http://127.0.0.1:8545'; // 或其他网络
 const CONTRACT_ADDRESS = '0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3';
-const PRIVATE_KEY = '0x84b7bc480b8aa88404aa7f2b1c6e18b00313c3c453a8d46a4de32bd14dc564af'; // 注意安全性，部署时使用 wrangler secret
+const PRIVATE_KEY = ''; // 注意安全性，部署时使用 wrangler secret
 const ABI = [ // 精简 ABI 只保留 redeem 函数
   "function redeem(address user, uint256 tokenId, string uri, uint256 amount, uint256 cost, uint256 deadline, uint256 nonce, bytes signature)"
 ];
