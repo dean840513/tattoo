@@ -1,5 +1,5 @@
 // ========== 文件: wallet.js ==========
-marketplaceAddress = "0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3";
+marketplaceAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const MARKETPLACE_ABI = [
   "function redeem(uint256 tokenid)",
@@ -109,7 +109,7 @@ async function showTatBalance() {
   try {
     const wineContract = new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer);
     const balance = await wineContract.pointBalanceOf(userAddress, { blockTag: "latest" });
-    document.getElementById("tatBalance").innerText = `我的葡萄：${ethers.utils.formatUnits(balance, 0)} 🍇`;
+    document.getElementById("tatBalance").innerText = `我的葡萄：${ethers.utils.formatUnits(balance, 6)} 🍇`;
     document.getElementById("tatBalance").style.display = "inline";
     document.getElementById("tatBalance").style.cursor = "pointer";
     document.getElementById("tatBalance").title = "点击刷新葡萄余额";
@@ -234,11 +234,13 @@ async function buy(tokenid) {
     console.log("nonce: " + nonce);
 
     item.uri = `http://127.0.0.1:8787/products/${item.tokenId}`;
+    const costRaw = ethers.utils.parseUnits(item.price.toString(), 6); // BigNumber
+    console.log(costRaw.toString());
 
     // 构造哈希并签名
     const hash = ethers.utils.solidityKeccak256(
       ["address", "uint256", "string", "uint256", "uint256", "uint256", "uint256", "address"],
-      [userAddress, tokenid, item.uri, 1, item.price, deadline, nonce.toString(), marketplaceAddress]
+      [userAddress, tokenid, item.uri, 1, costRaw.toString(), deadline, nonce.toString(), marketplaceAddress]
     );
     const bytes = ethers.utils.arrayify(hash);
     const signature = await signer.signMessage(bytes);
@@ -248,7 +250,7 @@ async function buy(tokenid) {
       tokenId: tokenid,
       uri: item.uri,
       amount: 1,
-      cost: item.price,
+      cost: costRaw.toString(),
       deadline,
       nonce: nonce.toString(),
       signature

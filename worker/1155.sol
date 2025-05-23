@@ -5,8 +5,62 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155URIS
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+// ========== 内部定义的 ERC20（积分合约） ==========
+contract WinePointERC20 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+    mapping(address => uint256) private _balances;
+    address public controller;
+
+    string public tokenName;
+    string public tokenSymbol;
+    uint8 public decimals;
+
+    modifier onlyController() {
+        require(msg.sender == controller, "Not controller");
+        _;
+    }
+
+    function initialize(
+        address _controller,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    ) public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+        controller = _controller;
+        tokenName = _name;
+        tokenSymbol = _symbol;
+        decimals = _decimals;
+    }
+
+    function name() external view returns (string memory) {
+        return tokenName;
+    }
+
+    function symbol() external view returns (string memory) {
+        return tokenSymbol;
+    }
+
+    function mint(address to, uint256 amount) external onlyController {
+        _balances[to] += amount;
+    }
+
+    function burn(address from, uint256 amount) external onlyController {
+        require(_balances[from] >= amount, "Insufficient");
+        _balances[from] -= amount;
+    }
+
+    function balanceOf(address user) external view returns (uint256) {
+        return _balances[user];
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+}
+
+// ========== 主合约（自动部署 ERC20 + NFT） ==========
 contract WinePlatform1155 is
     Initializable,
     ERC1155URIStorageUpgradeable,
@@ -15,31 +69,12 @@ contract WinePlatform1155 is
 {
     using ECDSA for bytes32;
 
-    // ======================== 积分逻辑 ========================
-    mapping(address => uint256) private _balances;
-
     address public relayer;
+    address public erc20Proxy;
 
-    function setRelayer(address _relayer) external onlyOwner {
-        relayer = _relayer;
-    }
+    string public tokenName;
+    string public tokenSymbol;
 
-    function mintPoints(address to, uint256 amount) external {
-        require(msg.sender == relayer, "Only relayer can mint points");
-        _balances[to] += amount;
-    }
-
-    function burnPoints(address from, uint256 amount) internal {
-        require(_balances[from] >= amount, "Insufficient points");
-        _balances[from] -= amount;
-    }
-
-    function pointBalanceOf(address user) external view returns (uint256) {
-        return _balances[user];
-    }
-
-    // ======================== NFT 铸造控制 ========================
-    uint256 public nextTokenId;
     mapping(address => uint256) public userNonce;
 
     modifier onlyRelayer() {
@@ -47,7 +82,57 @@ contract WinePlatform1155 is
         _;
     }
 
-    /// @notice 用户兑换：需验证签名 + 积分消耗
+    function initialize(
+        address relayer_,
+        string memory _name,
+        string memory _symbol
+    ) public initializer {
+        __ERC1155_init("");
+        __ERC1155URIStorage_init();
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+
+        relayer = relayer_;
+        tokenName = _name;
+        tokenSymbol = _symbol;
+
+        // 自动部署积分代币并传入 name/symbol/decimals
+        WinePointERC20 logic = new WinePointERC20();
+        bytes memory initData = abi.encodeWithSelector(
+            WinePointERC20.initialize.selector,
+            address(this),
+            "Wine Point",
+            "WP",
+            6
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(logic), initData);
+        erc20Proxy = address(proxy);
+    }
+
+    function name() external view returns (string memory) {
+        return tokenName;
+    }
+
+    function symbol() external view returns (string memory) {
+        return tokenSymbol;
+    }
+
+    // ========== 积分接口 ==========
+
+    function mintPoints(address to, uint256 amount) external onlyRelayer {
+        WinePointERC20(erc20Proxy).mint(to, amount);
+    }
+
+    function burnPoints(address from, uint256 amount) internal {
+        WinePointERC20(erc20Proxy).burn(from, amount);
+    }
+
+    function pointBalanceOf(address user) external view returns (uint256) {
+        return WinePointERC20(erc20Proxy).balanceOf(user);
+    }
+
+    // ========== NFT 铸造逻辑 ==========
+
     function redeem(
         address user,
         uint256 tokenId,
@@ -73,11 +158,10 @@ contract WinePlatform1155 is
                 address(this)
             )
         );
-
         bytes32 ethHash = keccak256(
             abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
         );
-        address signer = ECDSA.recover(ethHash, signature);
+        address signer = ethHash.recover(signature);
         require(signer == user, "Invalid signature");
 
         userNonce[user]++;
@@ -87,7 +171,6 @@ contract WinePlatform1155 is
         _setURI(tokenId, uri);
     }
 
-    /// @notice 平台直接发 NFT（无积分、无签名）
     function issue(
         address user,
         uint256 tokenId,
@@ -98,7 +181,6 @@ contract WinePlatform1155 is
         _setURI(tokenId, uri);
     }
 
-    // ======================== NFT 查询 ========================
     function getUserNFTs(address user)
         external
         view
@@ -112,16 +194,14 @@ contract WinePlatform1155 is
         uint256 count = 0;
 
         for (uint256 i = 0; i < max; i++) {
-            if (balanceOf(user, i) > 0) {
-                count++;
-            }
+            if (balanceOf(user, i) > 0) count++;
         }
 
         tokenIds = new uint256[](count);
         amounts = new uint256[](count);
         uris = new string[](count);
-
         uint256 found = 0;
+
         for (uint256 i = 0; i < max; i++) {
             uint256 bal = balanceOf(user, i);
             if (bal > 0) {
@@ -133,17 +213,13 @@ contract WinePlatform1155 is
         }
     }
 
-    // ======================== 合约基础配置 ========================
-    function initialize(address owner_, address relayer_) public initializer {
-        __ERC1155_init("");
-        __ERC1155URIStorage_init();
-        __Ownable_init(owner_);
-        __UUPSUpgradeable_init();
+    // ========== 外部查询 ==========
 
-        relayer = relayer_;
-    }
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyOwner
+    {}
 
     receive() external payable {}
 

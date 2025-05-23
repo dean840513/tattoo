@@ -1,9 +1,8 @@
-import { ethers, verifyMessage } from 'ethers';
+import { ethers, parseUnits } from 'ethers';
 
 //===============================  环境变量设置（推荐使用 Secrets 机制）=================================================================
 const RPC_URL = 'http://127.0.0.1:8545'; // 或其他网络
-const CONTRACT_ADDRESS = '0x5e2c897C28BF96f804465643Aa7FC8EAe35a54D3';
-const PRIVATE_KEY = '0x84b7bc480b8aa88404aa7f2b1c6e18b00313c3c453a8d46a4de32bd14dc564af'; // 注意安全性，部署时使用 wrangler secret
+const CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 const ABI = [ // 精简 ABI 只保留 redeem 函数
   "function redeem(address user, uint256 tokenId, string uri, uint256 amount, uint256 cost, uint256 deadline, uint256 nonce, bytes signature)"
 ];
@@ -214,7 +213,10 @@ export default {
           return withCors(JSON.stringify({ success: false, error: "库存不足" }), 400);
         }
 
-        if (parseInt(row.price) !== parseInt(cost)) {
+        // Worker 比对最小单位
+        const expectedCost = parseUnits(row.price.toString(), 6).toString(); // BigNumber → string
+
+        if (parseInt(expectedCost) !== parseInt(cost)) {
           return withCors(JSON.stringify({ success: false, error: "价格信息不匹配" }), 400);
         }
 
@@ -224,6 +226,7 @@ export default {
         }
 
         // ========== 发起合约交易 ==========
+        const PRIVATE_KEY = env.PRIVATE_KEY;
         const provider = new ethers.JsonRpcProvider(RPC_URL);
         const signer = new ethers.Wallet(PRIVATE_KEY, provider);
 
