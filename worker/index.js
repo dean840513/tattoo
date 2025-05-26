@@ -374,6 +374,99 @@ export default {
       return withCors(JSON.stringify(metadata, null, 2), 200, "application/json");
     }
 
+    // ========================== ✅ 新增：PayPal 支付后购买接口（POST /buyfrompaypal） ================================
+    if (url.pathname === "/buyfrompaypal" && method === "POST") {
+      try {
+        const body = await request.json();
+        const {
+          orderId,      // PayPal 的订单号
+          user,         // 钱包地址
+          tokenId       // 商品 ID
+        } = body;
+
+        if (!orderId || !user || !tokenId) {
+          return withCors(JSON.stringify({ success: false, error: "缺少必要字段" }), 400);
+        }
+
+        // 1️⃣ 查询商品
+        const row = await env.DB.prepare("SELECT * FROM products WHERE tokenId = ?")
+          .bind(tokenId)
+          .first();
+
+        if (!row) return withCors("❌ 商品不存在", 404);
+        if (parseInt(row.stock) <= 0) return withCors("❌ 商品库存不足", 400);
+
+        // 2️⃣ 调用 PayPal API 校验订单状态
+        const PAYPAL_CLIENT_ID = env.PAYPAL_CLIENT_ID;
+        const PAYPAL_SECRET = env.PAYPAL_SECRET;
+        const authString = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`);
+
+        const accessRes = await fetch("https://api-m.sandbox.paypal.com/v1/oauth2/token", {
+          method: "POST",
+          headers: {
+            "Authorization": `Basic ${authString}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: "grant_type=client_credentials"
+        });
+
+        const accessToken = (await accessRes.json()).access_token;
+
+        const orderRes = await fetch(`https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderId}`, {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`
+          }
+        });
+
+        const orderData = await orderRes.json();
+
+        if (orderData.status !== "COMPLETED") {
+          return withCors(JSON.stringify({ success: false, error: "PayPal 订单未完成" }), 400);
+        }
+
+        const customId = orderData.purchase_units?.[0]?.custom_id;
+        if (!customId || customId.toLowerCase() !== user.toLowerCase()) {
+          return withCors(JSON.stringify({ success: false, error: "用户地址不匹配" }), 400);
+        }
+
+        // 3️⃣ 发 NFT
+        // const uri = `http://127.0.0.1:8787/products/${tokenId}`;
+        // const amount = 1;
+        // const deadline = Math.floor(Date.now() / 1000) + 3600;
+        // const nonce = Date.now(); // 简化 nonce
+
+        // const PRIVATE_KEY = env.PRIVATE_KEY;
+        // const provider = new ethers.JsonRpcProvider(RPC_URL);
+        // const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+        // const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        // const cost = parseUnits(row.price.toString(), 6).toString();
+
+        // const messageHash = await contract.getMessageHash(user, tokenId, uri, amount, cost, deadline, nonce);
+        // const signature = await signer.signMessage(ethers.getBytes(messageHash));
+
+        // const tx = await contract.redeem(
+        //   user, tokenId, uri, amount, cost, deadline, nonce, signature
+        // );
+        // const receipt = await tx.wait();
+        // ✅ 模拟成功发 NFT
+        const receipt = { hash: "0xtesttxhash1234567890" };
+
+        // 4️⃣ 更新库存
+        const newStock = parseInt(row.stock) - 1;
+        await env.DB.prepare("UPDATE products SET stock = ? WHERE tokenId = ?")
+          .bind(newStock, tokenId)
+          .run();
+
+        return withCors(JSON.stringify({ success: true, txHash: receipt.hash }));
+
+      } catch (err) {
+        console.error("❌ /buyfrompaypal error:", err);
+        return withCors(JSON.stringify({ success: false, error: err.message || err.toString() }), 500);
+      }
+    }
+
+
 
     // 默认提示========================================================================
     return withCors("请访问 /write、/read、/update、/list", 200, "text/plain");

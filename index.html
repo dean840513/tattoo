@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TATTOO NFT Marketplace</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <header>
@@ -42,46 +44,62 @@
 
   <!-- 详情页 -->
   <div id="nftOverlay" style="display: none;">
-    <div id="nftDetailView"  class="modal">
+    <div id="nftDetailView" class="modal">
       <button class="close-btn" onclick="backToList()">✖</button>
       <h2 id="nftName"></h2>
       <p id="nftDescription" style="color: #666; margin-bottom: 1rem;"></p>
       <img id="nftImage" style="max-width: 200px;" />
       <div id="nftAttributes" style="color: #666; font-size: 0.9rem; margin: 0.3rem 0;"></div>
-      <p id="nftPrice" style="font-weight: bold;"></p>      
-      <button id="buyButton" class="primary-button" onclick="buyNFT()">🛒 立即购买</button>
+      <p id="nftPrice" style="font-weight: bold;"></p>
+      <button id="buyButton" class="primary-button" onclick="buyNFT()" style="display: none;">🛒 立即购买</button>
+      <!-- 添加到详情页模态框中的合适位置，例如 buyButton 按钮上方 -->
+      <div id="paypal-button-container" style="margin-top: 1rem;"></div>
     </div>
   </div>
-  
-  
 
-	<!-- 📱 手机端提示弹窗 -->
-	<div id="mobileAlert" style="display:none; position:fixed; top:30%; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ccc; border-radius:8px; padding:1.2rem; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:9999; width:90%; max-width:360px;">
+  <!-- 付款成功提示 -->
+  <div id="paymentResult" style="display: none;"></div>
 
-	  <!-- ✖️ 关闭按钮 -->
-	  <div style="text-align:right; margin:-0.8rem -0.8rem 0.5rem 0;">
-		<button onclick="closeMobileAlert()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">✖</button>
-	  </div>
 
-	  <p style="margin:0 0 1rem;">📱 请在 MetaMask App 中点击浏览器图标，并访问本站：</p>
-	  <input id="siteLink" value="" readonly style="width:100%; font-size:0.9rem; padding:0.4rem; border:1px solid #ccc; border-radius:4px; margin-bottom:1rem;" />
-	  <button onclick="copyLink()" style="background:#000; color:#fff; padding:0.5rem 1rem; border:none; border-radius:4px; cursor:pointer;">📋 复制链接</button>
-	</div>
 
-	<!-- ⏳ 钱包交互弹窗 -->
-	<div id="walletOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+
+  <!-- 📱 手机端提示弹窗 -->
+  <div id="mobileAlert"
+    style="display:none; position:fixed; top:30%; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ccc; border-radius:8px; padding:1.2rem; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:9999; width:90%; max-width:360px;">
+
+    <!-- ✖️ 关闭按钮 -->
+    <div style="text-align:right; margin:-0.8rem -0.8rem 0.5rem 0;">
+      <button onclick="closeMobileAlert()"
+        style="border:none; background:none; font-size:1.2rem; cursor:pointer;">✖</button>
+    </div>
+
+    <p style="margin:0 0 1rem;">📱 请在 MetaMask App 中点击浏览器图标，并访问本站：</p>
+    <input id="siteLink" value="" readonly
+      style="width:100%; font-size:0.9rem; padding:0.4rem; border:1px solid #ccc; border-radius:4px; margin-bottom:1rem;" />
+    <button onclick="copyLink()"
+      style="background:#000; color:#fff; padding:0.5rem 1rem; border:none; border-radius:4px; cursor:pointer;">📋
+      复制链接</button>
+  </div>
+
+  <!-- ⏳ 钱包交互弹窗 -->
+  <div id="walletOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
 	  background:rgba(0,0,0,0.4); z-index:10000; align-items:center; justify-content:center;">
-	  <div style="display:flex; flex-direction:column; background:#fff; padding:1.2rem 2rem; border-radius:8px;
+    <div style="display:flex; flex-direction:column; background:#fff; padding:1.2rem 2rem; border-radius:8px;
 		box-shadow:0 4px 12px rgba(0,0,0,0.2); font-size:1rem; text-align:center;">
-		<div class="loader" style="margin-bottom:1rem;"></div>
-		正在与钱包交互，请稍候...
-	  </div>
-	</div>
+      <div class="loader" style="margin-bottom:1rem;"></div>
+      正在与钱包交互，请稍候...
+    </div>
+  </div>
 
-<!-- 加载脚本：顺序很重要 -->
-<script src="ethers.umd.min.js"></script> <!-- ethers库，必须最先 -->
-<script src="magic.js"></script>
-<script src="script.js"></script> 
+  
+
+  <!-- 加载脚本：顺序很重要 -->
+  <script src="ethers.umd.min.js"></script> <!-- ethers库，必须最先 -->
+  <script src="magic.js"></script>
+  <!-- 请替换为你的 Sandbox Client ID -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AXPx0x_9Nj4Nv0n-5u78lG0LU2mw32nU4u74j1iRdMTckF48neEdqWCrLMe-Vrd51Lj-jBpw-ltBQPRE&currency=USD"></script>
+  <script src="script.js"></script>
 
 </body>
+
 </html>

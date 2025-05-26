@@ -42,6 +42,12 @@ async function connectWallet() {
 
     displayWalletAddress(userAddress);
     await showTatBalance();
+    if (location.hash.startsWith("#nft/")) {
+      const match = location.hash.match(/^#nft\/(\d+)/);
+      if (match) {
+        showDetail(match[1]); // ✅ 重新渲染详情页（含 PayPal 按钮）
+      }
+    }
 
   } catch (err) {
     alert("连接失败：" + err.message);
@@ -354,6 +360,93 @@ async function renderNFTs() {
   }
 }
 
+async function renderPayPalButton(tokenId) {
+  const container = document.getElementById("paypal-button-container");
+  container.innerHTML = ""; // 清空旧按钮
+
+  if (!userAddress) {
+    container.innerHTML = `<p style="color:red;">⚠️ 请先登录或连接钱包</p>`;
+    return;
+  }
+
+  // 获取商品信息
+  const res = await fetch(`http://127.0.0.1:8787/read?tokenId=${tokenId}`);
+  if (!res.ok) {
+    container.innerHTML = "<p style='color:red;'>❌ 获取商品失败</p>";
+    return;
+  }
+  const item = await res.json();
+
+  paypal.Buttons({
+    createOrder: async function (data, actions) {
+      const orderId = `paypal_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+      const message = `${userAddress}:${tokenId}:${orderId}`;
+      const signature = await signer.signMessage(message);
+
+      // 存储元数据（会传给后端）
+      container.dataset.meta = JSON.stringify({
+        orderId,
+        user: userAddress,
+        tokenId,
+        signature
+      });
+
+      return actions.order.create({
+        purchase_units: [{
+          amount: { value: item.price.toString() },
+          description: item.name,
+          custom_id: userAddress
+        }]
+      });
+    },
+
+    onApprove: async function (data, actions) {
+      const details = await actions.order.capture();
+
+      const meta = JSON.parse(container.dataset.meta);
+      const payload = {
+        ...meta,
+        paypalOrderId: data.orderID  // ✅ 加上传入的 PayPal 订单号
+      };
+
+      console.log("📤 发送给后端的数据:", payload);
+
+      const response = await fetch("http://127.0.0.1:8787/buyfrompaypal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const resData = await response.json();
+
+      console.log("📥 后端响应:", resData);
+
+      if (!response.ok || !resData.success) {
+        alert("❌ mint 失败: " + (resData.error || "未知错误"));
+        return;
+      }
+
+      // 清空按钮
+      document.getElementById("paypal-button-container").innerHTML = "";
+
+      // 隐藏详情页，显示结果卡片
+      animateSwitch(["nftOverlay", "nftListView", "title"], ["paymentResult"]);
+
+      document.getElementById("paymentResult").innerHTML = `
+        <div class="modal" style="text-align:center;">
+          <h2>🎉 购买成功！</h2>
+          <p>订单号：${data.orderID}</p>
+          <p>交易哈希：${resData.txHash}</p>
+          <button onclick="backToList()" class="primary-button">返回主页</button>
+        </div>
+      `;
+
+    }
+  }).render("#paypal-button-container");
+}
+
+
+
 // ========== 文件: detail.js ==========
 
 async function showDetail(tokenId) {
@@ -389,6 +482,8 @@ async function showDetail(tokenId) {
     `;
 
     document.getElementById("buyButton").setAttribute("data-token-id", tokenId);
+    // 💰 初始化 PayPal 按钮
+    setTimeout(() => renderPayPalButton(tokenId), 0); // 延迟让 DOM ready
   } catch (err) {
     console.error("❌ NFT详情加载失败：", err.message || err);
     backToList();
